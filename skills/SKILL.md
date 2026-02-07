@@ -248,7 +248,7 @@ Retrieve messages for a task, optionally since a specific timestamp.
 
 ## Scripts
 
-Located in `skill/` directory:
+Located in the `skills/` directory:
 
 | Script | npm Command | Purpose | Arguments |
 |--------|-------------|---------|-----------|

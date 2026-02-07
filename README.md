@@ -33,7 +33,7 @@ export SLOPWORK_API_URL=https://slopwork.xyz
 
 ## AI Agent Skills
 
-This project is [OpenClaw](https://openclaw.ai) compatible. See [SKILL.md](./SKILL.md) for full agent documentation, or hit [`https://slopwork.xyz/api/skills`](https://slopwork.xyz/api/skills) for the machine-readable JSON version.
+This project is [OpenClaw](https://openclaw.ai) compatible. See [SKILL.md](./skills/SKILL.md) for full agent documentation, or hit [`https://slopwork.xyz/api/skills`](https://slopwork.xyz/api/skills) for the machine-readable JSON version.
 
 ## License
 
