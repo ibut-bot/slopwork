@@ -119,15 +119,15 @@ export async function createMultisigVault(
     rentCollector: null,
   })
 
-  const { blockhash } = await connection.getLatestBlockhash()
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
   const transaction = new Transaction()
   transaction.recentBlockhash = blockhash
   transaction.feePayer = creator.publicKey
   transaction.add(ix)
   transaction.sign(creator, createKey)
 
-  const signature = await connection.sendRawTransaction(transaction.serialize())
-  await connection.confirmTransaction(signature, 'confirmed')
+  const signature = await connection.sendRawTransaction(transaction.serialize(), { maxRetries: 5 })
+  await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
 
   const [vaultPda] = multisig.getVaultPda({ multisigPda, index: 0 })
   return { multisigPda, vaultPda, signature }
@@ -167,7 +167,7 @@ export async function createTransferProposal(
     )
   }
 
-  const { blockhash } = await connection.getLatestBlockhash()
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
   const transferMessage = new TransactionMessage({
     payerKey: vaultPda,
     recentBlockhash: blockhash,
@@ -196,8 +196,8 @@ export async function createTransferProposal(
   transaction.add(createVaultTxIx, createProposalIx)
   transaction.sign(creator)
 
-  const signature = await connection.sendRawTransaction(transaction.serialize())
-  await connection.confirmTransaction(signature, 'confirmed')
+  const signature = await connection.sendRawTransaction(transaction.serialize(), { maxRetries: 5 })
+  await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
   return { transactionIndex, signature }
 }
 
@@ -208,14 +208,14 @@ export async function approveProposal(
   transactionIndex: bigint
 ): Promise<string> {
   const ix = multisig.instructions.proposalApprove({ multisigPda, transactionIndex, member: member.publicKey })
-  const { blockhash } = await connection.getLatestBlockhash()
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
   const transaction = new Transaction()
   transaction.recentBlockhash = blockhash
   transaction.feePayer = member.publicKey
   transaction.add(ix)
   transaction.sign(member)
-  const signature = await connection.sendRawTransaction(transaction.serialize())
-  await connection.confirmTransaction(signature, 'confirmed')
+  const signature = await connection.sendRawTransaction(transaction.serialize(), { maxRetries: 5 })
+  await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
   return signature
 }
 
@@ -226,14 +226,14 @@ export async function rejectProposal(
   transactionIndex: bigint
 ): Promise<string> {
   const ix = multisig.instructions.proposalReject({ multisigPda, transactionIndex, member: member.publicKey })
-  const { blockhash } = await connection.getLatestBlockhash()
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
   const transaction = new Transaction()
   transaction.recentBlockhash = blockhash
   transaction.feePayer = member.publicKey
   transaction.add(ix)
   transaction.sign(member)
-  const signature = await connection.sendRawTransaction(transaction.serialize())
-  await connection.confirmTransaction(signature, 'confirmed')
+  const signature = await connection.sendRawTransaction(transaction.serialize(), { maxRetries: 5 })
+  await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
   return signature
 }
 
@@ -243,7 +243,7 @@ export async function executeVaultTransaction(
   multisigPda: PublicKey,
   transactionIndex: bigint
 ): Promise<string> {
-  const { blockhash } = await connection.getLatestBlockhash()
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
   const executeResult = await multisig.instructions.vaultTransactionExecute({
     connection,
     multisigPda,
@@ -257,8 +257,8 @@ export async function executeVaultTransaction(
   transaction.add(executeResult.instruction)
   transaction.sign(executor)
 
-  const signature = await connection.sendRawTransaction(transaction.serialize())
-  await connection.confirmTransaction(signature, 'confirmed')
+  const signature = await connection.sendRawTransaction(transaction.serialize(), { maxRetries: 5 })
+  await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
   return signature
 }
 
@@ -384,7 +384,7 @@ export async function createMultisigVaultWA(
     rentCollector: null,
   })
 
-  const { blockhash } = await connection.getLatestBlockhash()
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
   const transaction = new Transaction()
   transaction.recentBlockhash = blockhash
   transaction.feePayer = wallet.publicKey
@@ -394,8 +394,8 @@ export async function createMultisigVaultWA(
   transaction.partialSign(createKey)
   const signedTx = await wallet.signTransaction(transaction)
 
-  const signature = await connection.sendRawTransaction(signedTx.serialize())
-  await connection.confirmTransaction(signature, 'confirmed')
+  const signature = await connection.sendRawTransaction(signedTx.serialize(), { maxRetries: 5 })
+  await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
 
   const [vaultPda] = multisig.getVaultPda({ multisigPda, index: 0 })
   return { multisigPda, vaultPda, signature }
@@ -426,7 +426,7 @@ export async function createTransferProposalWA(
     )
   }
 
-  const { blockhash } = await connection.getLatestBlockhash()
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
   const transferMessage = new TransactionMessage({
     payerKey: vaultPda,
     recentBlockhash: blockhash,
@@ -462,8 +462,8 @@ export async function createTransferProposalWA(
   tx.add(createVaultTxIx, createProposalIx, approveIx)
 
   const signedTx = await wallet.signTransaction(tx)
-  const sig = await connection.sendRawTransaction(signedTx.serialize())
-  await connection.confirmTransaction(sig, 'confirmed')
+  const sig = await connection.sendRawTransaction(signedTx.serialize(), { maxRetries: 5 })
+  await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
 
   return { transactionIndex, signature: sig }
 }
@@ -481,15 +481,15 @@ export async function approveProposalWA(
     member: wallet.publicKey,
   })
 
-  const { blockhash } = await connection.getLatestBlockhash()
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
   const tx = new Transaction()
   tx.recentBlockhash = blockhash
   tx.feePayer = wallet.publicKey
   tx.add(ix)
 
   const signedTx = await wallet.signTransaction(tx)
-  const sig = await connection.sendRawTransaction(signedTx.serialize())
-  await connection.confirmTransaction(sig, 'confirmed')
+  const sig = await connection.sendRawTransaction(signedTx.serialize(), { maxRetries: 5 })
+  await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
   return sig
 }
 
@@ -500,7 +500,7 @@ export async function executeVaultTransactionWA(
   multisigPda: PublicKey,
   transactionIndex: bigint
 ): Promise<string> {
-  const { blockhash } = await connection.getLatestBlockhash()
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
   const executeResult = await multisig.instructions.vaultTransactionExecute({
     connection,
     multisigPda,
@@ -514,8 +514,8 @@ export async function executeVaultTransactionWA(
   tx.add(executeResult.instruction)
 
   const signedTx = await wallet.signTransaction(tx)
-  const sig = await connection.sendRawTransaction(signedTx.serialize())
-  await connection.confirmTransaction(sig, 'confirmed')
+  const sig = await connection.sendRawTransaction(signedTx.serialize(), { maxRetries: 5 })
+  await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
   return sig
 }
 
@@ -539,14 +539,14 @@ export async function approveAndExecuteWA(
     member: wallet.publicKey,
   })
 
-  const { blockhash } = await connection.getLatestBlockhash()
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
   const tx = new Transaction()
   tx.recentBlockhash = blockhash
   tx.feePayer = wallet.publicKey
   tx.add(approveIx, executeResult.instruction)
 
   const signedTx = await wallet.signTransaction(tx)
-  const sig = await connection.sendRawTransaction(signedTx.serialize())
-  await connection.confirmTransaction(sig, 'confirmed')
+  const sig = await connection.sendRawTransaction(signedTx.serialize(), { maxRetries: 5 })
+  await connection.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, 'confirmed')
   return sig
 }

@@ -36,7 +36,7 @@ export default function TaskForm() {
       setStep('paying')
       if (!SYSTEM_WALLET) throw new Error('System wallet not configured')
 
-      const { blockhash } = await connection.getLatestBlockhash()
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
       const tx = new Transaction()
       tx.recentBlockhash = blockhash
       tx.feePayer = publicKey
@@ -49,7 +49,7 @@ export default function TaskForm() {
       )
 
       const signature = await sendTransaction(tx, connection)
-      await connection.confirmTransaction(signature, 'confirmed')
+      await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
 
       // Step 2: Create task via API
       setStep('creating')

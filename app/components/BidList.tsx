@@ -61,7 +61,7 @@ export default function BidList({ bids, taskId, isCreator, taskStatus, onBidAcce
       if (bid.vaultAddress) {
         setStep('funding')
         const lamports = Number(bid.amountLamports)
-        const { blockhash } = await connection.getLatestBlockhash()
+        const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
         const tx = new Transaction()
         tx.recentBlockhash = blockhash
         tx.feePayer = publicKey
@@ -74,7 +74,7 @@ export default function BidList({ bids, taskId, isCreator, taskStatus, onBidAcce
         )
 
         const signature = await sendTransaction(tx, connection)
-        await connection.confirmTransaction(signature, 'confirmed')
+        await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
 
         // Record funding on API
         await authFetch(`/api/tasks/${taskId}/bids/${bid.id}/fund`, {

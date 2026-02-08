@@ -54,7 +54,7 @@ async function main() {
     const lamports = Number(bid.amountLamports)
 
     // Transfer SOL to vault
-    const { blockhash } = await connection.getLatestBlockhash()
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash()
     const tx = new Transaction()
     tx.recentBlockhash = blockhash
     tx.feePayer = keypair.publicKey
@@ -67,8 +67,8 @@ async function main() {
     )
     tx.sign(keypair)
 
-    const signature = await connection.sendRawTransaction(tx.serialize())
-    await connection.confirmTransaction(signature, 'confirmed')
+    const signature = await connection.sendRawTransaction(tx.serialize(), { maxRetries: 5 })
+    await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
 
     // Record funding on API
     const result = await apiRequest(keypair, 'POST', `/api/tasks/${args.task}/bids/${args.bid}/fund`, {
