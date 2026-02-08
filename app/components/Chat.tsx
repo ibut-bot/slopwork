@@ -97,7 +97,12 @@ export default function Chat({ taskId, isCreator, bidders = [] }: ChatProps) {
       const data = await res.json()
       if (data.success && data.messages) {
         if (since && data.messages.length > 0) {
-          setMessages((prev) => [...prev, ...data.messages])
+          // Deduplicate by ID to avoid duplicates from optimistic updates
+          setMessages((prev) => {
+            const existingIds = new Set(prev.map(m => m.id))
+            const newMessages = data.messages.filter((m: Message) => !existingIds.has(m.id))
+            return [...prev, ...newMessages]
+          })
         } else if (!since) {
           setMessages(data.messages)
         }
