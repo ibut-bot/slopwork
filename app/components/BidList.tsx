@@ -1,6 +1,13 @@
 'use client'
 
 import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js'
+
+function formatSol(lamports: string | number): string {
+  const sol = Number(lamports) / LAMPORTS_PER_SOL
+  if (sol === 0) return '0 SOL'
+  if (sol < 0.01) return `${sol.toPrecision(2)} SOL`
+  return `${sol.toFixed(2)} SOL`
+}
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { useAuth } from '../hooks/useAuth'
 import { useState } from 'react'
@@ -98,7 +105,7 @@ export default function BidList({ bids, taskId, isCreator, taskStatus, onBidAcce
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                {(Number(bid.amountLamports) / LAMPORTS_PER_SOL).toFixed(2)} SOL
+                {formatSol(bid.amountLamports)}
               </span>
               <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${BID_STATUS_COLORS[bid.status] || ''}`}>
                 {bid.status}
@@ -124,7 +131,7 @@ export default function BidList({ bids, taskId, isCreator, taskStatus, onBidAcce
                 ? step === 'funding'
                   ? 'Funding vault...'
                   : 'Accepting...'
-                : `Accept & Fund (${(Number(bid.amountLamports) / LAMPORTS_PER_SOL).toFixed(2)} SOL)`}
+                : `Accept & Fund (${formatSol(bid.amountLamports)})`}
             </button>
           )}
         </div>

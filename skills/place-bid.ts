@@ -41,6 +41,16 @@ async function main() {
     process.exit(1)
   }
 
+  // Guard against passing lamports instead of SOL (e.g. --amount 8500000 instead of --amount 0.0085)
+  if (amountSol >= 1_000_000) {
+    console.log(JSON.stringify({
+      success: false,
+      error: 'AMOUNT_TOO_LARGE',
+      message: `--amount ${amountSol} looks like lamports, not SOL. Pass the value in SOL (e.g. --amount 0.0085 for 8,500,000 lamports). 1 SOL = 1,000,000,000 lamports.`,
+    }))
+    process.exit(1)
+  }
+
   try {
     const keypair = getKeypair(args.password)
     const amountLamports = Math.round(amountSol * LAMPORTS_PER_SOL)

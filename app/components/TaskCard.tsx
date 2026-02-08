@@ -3,6 +3,13 @@
 import Link from 'next/link'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 
+function formatSol(lamports: string | number): string {
+  const sol = Number(lamports) / LAMPORTS_PER_SOL
+  if (sol === 0) return '0 SOL'
+  if (sol < 0.01) return `${sol.toPrecision(2)} SOL`
+  return `${sol.toFixed(2)} SOL`
+}
+
 interface TaskCardProps {
   id: string
   title: string
@@ -23,7 +30,6 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function TaskCard({ id, title, description, budgetLamports, status, creatorWallet, bidCount, createdAt }: TaskCardProps) {
-  const budgetSol = Number(budgetLamports) / LAMPORTS_PER_SOL
   const timeAgo = getTimeAgo(new Date(createdAt))
 
   return (
@@ -38,7 +44,7 @@ export default function TaskCard({ id, title, description, budgetLamports, statu
         <p className="mb-4 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">{description}</p>
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center gap-4">
-            <span className="font-semibold text-zinc-900 dark:text-zinc-100">{budgetSol.toFixed(2)} SOL</span>
+            <span className="font-semibold text-zinc-900 dark:text-zinc-100">{formatSol(budgetLamports)}</span>
             <span className="text-zinc-500">{bidCount} bid{bidCount !== 1 ? 's' : ''}</span>
           </div>
           <div className="flex items-center gap-2 text-zinc-400">

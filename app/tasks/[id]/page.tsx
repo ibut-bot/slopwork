@@ -3,6 +3,13 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
+
+function formatSol(lamports: string | number): string {
+  const sol = Number(lamports) / LAMPORTS_PER_SOL
+  if (sol === 0) return '0 SOL'
+  if (sol < 0.01) return `${sol.toPrecision(2)} SOL`
+  return `${sol.toFixed(2)} SOL`
+}
 import { useAuth } from '../../hooks/useAuth'
 import BidForm from '../../components/BidForm'
 import BidList from '../../components/BidList'
@@ -126,7 +133,7 @@ export default function TaskDetailPage() {
         </div>
         <div className="flex items-center gap-4 text-sm text-zinc-500">
           <span className="font-semibold text-zinc-900 dark:text-zinc-100">
-            {(Number(task.budgetLamports) / LAMPORTS_PER_SOL).toFixed(2)} SOL
+            {formatSol(task.budgetLamports)}
           </span>
           <span>by {task.creatorWallet.slice(0, 6)}...{task.creatorWallet.slice(-4)}</span>
           <span>{new Date(task.createdAt).toLocaleDateString()}</span>
@@ -199,7 +206,7 @@ export default function TaskDetailPage() {
               </div>
               <div className="flex justify-between">
                 <span>Budget</span>
-                <span className="font-medium">{(Number(task.budgetLamports) / LAMPORTS_PER_SOL).toFixed(2)} SOL</span>
+                <span className="font-medium">{formatSol(task.budgetLamports)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Bids</span>

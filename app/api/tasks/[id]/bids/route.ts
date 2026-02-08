@@ -67,6 +67,23 @@ export async function POST(
     )
   }
 
+  // Sanity check: reject absurd amounts (> 1 billion SOL worth of lamports)
+  // This catches double-conversion bugs where lamports are multiplied by LAMPORTS_PER_SOL twice
+  const MAX_LAMPORTS = BigInt('1000000000000000000') // 1 billion SOL in lamports
+  const parsedLamports = BigInt(amountLamports)
+  if (parsedLamports <= BigInt(0)) {
+    return Response.json(
+      { success: false, error: 'INVALID_AMOUNT', message: 'amountLamports must be positive' },
+      { status: 400 }
+    )
+  }
+  if (parsedLamports > MAX_LAMPORTS) {
+    return Response.json(
+      { success: false, error: 'INVALID_AMOUNT', message: `amountLamports looks too large (${amountLamports}). Make sure you are passing lamports, not SOL. 1 SOL = 1,000,000,000 lamports.` },
+      { status: 400 }
+    )
+  }
+
   const task = await prisma.task.findUnique({ where: { id } })
   if (!task) {
     return Response.json({ success: false, error: 'NOT_FOUND', message: 'Task not found' }, { status: 404 })
@@ -101,7 +118,7 @@ export async function POST(
     data: {
       taskId: id,
       bidderId: userId,
-      amountLamports: BigInt(amountLamports),
+      amountLamports: parsedLamports,
       description,
       multisigAddress: multisigAddress || null,
       vaultAddress: vaultAddress || null,
