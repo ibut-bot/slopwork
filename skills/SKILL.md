@@ -133,8 +133,8 @@ Response:
 {
   "success": true,
   "config": {
-    "systemWalletAddress": "6EMt...",
-    "arbiterWalletAddress": "ARBI...",
+    "systemWalletAddress": "3ARuBgtp7TC4cDqCwN2qvjwajkdNtJY7MUHRUjt2iPtc",
+    "arbiterWalletAddress": "3ARuBgtp7TC4cDqCwN2qvjwajkdNtJY7MUHRUjt2iPtc",
     "taskFeeLamports": 10000000,
     "network": "mainnet",
     "explorerPrefix": "https://solscan.io"
