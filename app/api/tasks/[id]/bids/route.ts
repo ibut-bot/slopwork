@@ -67,10 +67,25 @@ export async function POST(
     )
   }
 
+  if (typeof description !== 'string' || description.trim().length === 0 || description.length > 5000) {
+    return Response.json(
+      { success: false, error: 'INVALID_DESCRIPTION', message: 'description must be a non-empty string of at most 5000 characters' },
+      { status: 400 }
+    )
+  }
+
   // Sanity check: reject absurd amounts (> 1 billion SOL worth of lamports)
   // This catches double-conversion bugs where lamports are multiplied by LAMPORTS_PER_SOL twice
   const MAX_LAMPORTS = BigInt('1000000000000000000') // 1 billion SOL in lamports
-  const parsedLamports = BigInt(amountLamports)
+  let parsedLamports: bigint
+  try {
+    parsedLamports = BigInt(amountLamports)
+  } catch {
+    return Response.json(
+      { success: false, error: 'INVALID_AMOUNT', message: 'amountLamports must be a valid integer' },
+      { status: 400 }
+    )
+  }
   if (parsedLamports <= BigInt(0)) {
     return Response.json(
       { success: false, error: 'INVALID_AMOUNT', message: 'amountLamports must be positive' },

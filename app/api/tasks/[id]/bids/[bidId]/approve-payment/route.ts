@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/api-helpers'
+import { getConnection } from '@/lib/solana/connection'
 
 /** POST /api/tasks/:id/bids/:bidId/approve-payment
  *  Task creator records that they approved + executed the on-chain vault tx.
@@ -60,6 +61,32 @@ export async function POST(
   if (task.winningBid.status !== 'PAYMENT_REQUESTED') {
     return Response.json(
       { success: false, error: 'INVALID_STATUS', message: `Bid is ${task.winningBid.status}, must be PAYMENT_REQUESTED` },
+      { status: 400 }
+    )
+  }
+
+  // Verify the execute transaction exists and succeeded on-chain
+  try {
+    const connection = getConnection()
+    const tx = await connection.getParsedTransaction(executeTxSignature, {
+      maxSupportedTransactionVersion: 0,
+      commitment: 'confirmed',
+    })
+    if (!tx) {
+      return Response.json(
+        { success: false, error: 'TX_NOT_FOUND', message: 'Execute transaction not found or not confirmed on-chain' },
+        { status: 400 }
+      )
+    }
+    if (tx.meta?.err) {
+      return Response.json(
+        { success: false, error: 'TX_FAILED', message: 'Execute transaction failed on-chain' },
+        { status: 400 }
+      )
+    }
+  } catch (e: any) {
+    return Response.json(
+      { success: false, error: 'TX_VERIFY_ERROR', message: e.message || 'Failed to verify transaction on-chain' },
       { status: 400 }
     )
   }

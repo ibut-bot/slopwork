@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/db'
 import { requireAuth } from '@/lib/api-helpers'
+import { getConnection } from '@/lib/solana/connection'
 
 /** POST /api/tasks/:id/bids/:bidId/request-payment
  *  Bidder records on-chain proposal after creating it client-side.
@@ -33,6 +34,13 @@ export async function POST(
     )
   }
 
+  if (typeof proposalIndex !== 'number' || !Number.isInteger(proposalIndex) || proposalIndex < 0) {
+    return Response.json(
+      { success: false, error: 'INVALID_PROPOSAL_INDEX', message: 'proposalIndex must be a non-negative integer' },
+      { status: 400 }
+    )
+  }
+
   const task = await prisma.task.findUnique({
     where: { id },
     include: { winningBid: { include: { bidder: true } } },
@@ -60,6 +68,32 @@ export async function POST(
   if (task.winningBid.status !== 'FUNDED') {
     return Response.json(
       { success: false, error: 'INVALID_STATUS', message: `Bid is ${task.winningBid.status}, must be FUNDED to request payment` },
+      { status: 400 }
+    )
+  }
+
+  // Verify the transaction signature exists on-chain
+  try {
+    const connection = getConnection()
+    const tx = await connection.getParsedTransaction(txSignature, {
+      maxSupportedTransactionVersion: 0,
+      commitment: 'confirmed',
+    })
+    if (!tx) {
+      return Response.json(
+        { success: false, error: 'TX_NOT_FOUND', message: 'Transaction not found or not confirmed on-chain' },
+        { status: 400 }
+      )
+    }
+    if (tx.meta?.err) {
+      return Response.json(
+        { success: false, error: 'TX_FAILED', message: 'Transaction failed on-chain' },
+        { status: 400 }
+      )
+    }
+  } catch (e: any) {
+    return Response.json(
+      { success: false, error: 'TX_VERIFY_ERROR', message: e.message || 'Failed to verify transaction on-chain' },
       { status: 400 }
     )
   }

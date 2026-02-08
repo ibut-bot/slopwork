@@ -1,3 +1,16 @@
+/**
+ * In-memory rate limiter.
+ *
+ * WARNING: This rate limiter uses a process-local Map. In serverless environments
+ * (Vercel, AWS Lambda) or multi-instance deployments, each instance has its own
+ * store, so rate limits are not shared across instances.
+ *
+ * For production, replace with a distributed store such as:
+ *   - @upstash/ratelimit (Redis-backed, serverless-friendly)
+ *   - Redis INCR/EXPIRE pattern
+ *   - Vercel KV
+ */
+
 interface RateLimitEntry {
   count: number
   resetAt: number
@@ -6,12 +19,19 @@ interface RateLimitEntry {
 const store = new Map<string, RateLimitEntry>()
 
 // Clean up expired entries every 5 minutes
-setInterval(() => {
-  const now = Date.now()
-  for (const [key, entry] of store) {
-    if (entry.resetAt < now) store.delete(key)
+if (typeof globalThis !== 'undefined') {
+  const cleanup = () => {
+    const now = Date.now()
+    for (const [key, entry] of store) {
+      if (entry.resetAt < now) store.delete(key)
+    }
   }
-}, 5 * 60 * 1000)
+  // Avoid duplicate intervals in hot-reload (dev)
+  const globalStore = globalThis as unknown as { _rateLimitCleanup?: ReturnType<typeof setInterval> }
+  if (!globalStore._rateLimitCleanup) {
+    globalStore._rateLimitCleanup = setInterval(cleanup, 5 * 60 * 1000)
+  }
+}
 
 export interface RateLimitConfig {
   /** Max requests in the window */

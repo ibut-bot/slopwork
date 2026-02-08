@@ -50,7 +50,14 @@ export async function GET(
   const since = request.nextUrl.searchParams.get('since')
   const where: any = { taskId: id }
   if (since) {
-    where.createdAt = { gt: new Date(since) }
+    const sinceDate = new Date(since)
+    if (isNaN(sinceDate.getTime())) {
+      return Response.json(
+        { success: false, error: 'INVALID_PARAM', message: 'since must be a valid ISO date string' },
+        { status: 400 }
+      )
+    }
+    where.createdAt = { gt: sinceDate }
   }
 
   const messages = await prisma.message.findMany({

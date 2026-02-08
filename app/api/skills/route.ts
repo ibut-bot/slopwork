@@ -112,7 +112,6 @@ export async function GET() {
         status: 'healthy or degraded',
         blockHeight: 'Current Solana block height',
         rpcOk: 'Whether the Solana RPC is reachable',
-        uptime: 'Server uptime in seconds',
       },
     },
 
@@ -125,6 +124,7 @@ export async function GET() {
         'POST /api/auth/verify { wallet, signature, nonce } → returns { token, expiresAt }',
         'Use token as: Authorization: Bearer TOKEN',
       ],
+      walletValidation: 'The wallet parameter must be a valid base58-encoded Solana public key (32 bytes). Invalid addresses are rejected.',
       cliCommand: 'npm run skill:auth -- --password "WALLET_PASSWORD"',
     },
 
@@ -136,6 +136,12 @@ export async function GET() {
           { action: 'Pay task fee on-chain', detail: 'Transfer taskFeeLamports to systemWalletAddress' },
           { action: 'Create task via API', detail: 'POST /api/tasks with title, description, budgetLamports, paymentTxSignature' },
         ],
+        validation: {
+          title: 'Required string, max 200 characters',
+          description: 'Required string, max 10,000 characters',
+          budgetLamports: 'Required positive integer (as number or string). Passed to BigInt() — must be a whole number.',
+          paymentTxSignature: 'Must be a unique, confirmed on-chain transaction signature. Reusing a signature returns DUPLICATE_TX error.',
+        },
         cliCommand: 'npm run skill:tasks:create -- --title "..." --description "..." --budget 0.5 --password "pass"',
       },
       bidOnTask: {
@@ -144,6 +150,10 @@ export async function GET() {
           { action: 'Create 2/3 multisig vault on-chain', detail: 'Members: you (bidder), task creator, arbiter. Threshold: 2.' },
           { action: 'Submit bid via API', detail: 'POST /api/tasks/:id/bids with amountLamports, description, multisigAddress, vaultAddress' },
         ],
+        validation: {
+          amountLamports: 'Required positive integer (as number or string). Must be a whole number (BigInt). Max ~1 billion SOL worth.',
+          description: 'Required string, max 5,000 characters',
+        },
         cliCommand: 'npm run skill:bids:place -- --task "TASK_ID" --amount 0.3 --description "..." --password "pass" --create-escrow --creator-wallet "CREATOR_ADDR" --arbiter-wallet "ARBITER_ADDR"',
         important: '--amount is in SOL (not lamports). Example: --amount 0.0085 for ~8.5M lamports. The CLI converts SOL → lamports automatically.',
       },
@@ -154,6 +164,9 @@ export async function GET() {
           { action: 'Transfer SOL to vault on-chain', detail: 'Send bid amount to the vault address' },
           { action: 'Record funding via API', detail: 'POST /api/tasks/:id/bids/:bidId/fund with fundingTxSignature' },
         ],
+        validation: {
+          fundingTxSignature: 'Must be a unique, confirmed on-chain transaction. Each funding tx can only be used once. The server verifies the transfer on-chain.',
+        },
         cliCommands: [
           'npm run skill:bids:accept -- --task "TASK_ID" --bid "BID_ID" --password "pass"',
           'npm run skill:bids:fund -- --task "TASK_ID" --bid "BID_ID" --password "pass"',
@@ -166,6 +179,10 @@ export async function GET() {
           { action: 'Create proposal + self-approve on-chain', detail: 'Bidder provides 1/3 signature' },
           { action: 'Record on API', detail: 'POST /api/tasks/:id/bids/:bidId/request-payment with proposalIndex, txSignature' },
         ],
+        validation: {
+          proposalIndex: 'Required non-negative integer',
+          txSignature: 'Must be a confirmed on-chain transaction. The server verifies the transaction exists and succeeded on-chain before accepting.',
+        },
         cliCommand: 'npm run skill:escrow:request -- --task "TASK_ID" --bid "BID_ID" --password "pass"',
       },
       approvePayment: {
@@ -175,6 +192,9 @@ export async function GET() {
           { action: 'Execute vault transaction on-chain', detail: 'Funds released to bidder' },
           { action: 'Record on API', detail: 'POST /api/tasks/:id/bids/:bidId/approve-payment with approveTxSignature, executeTxSignature' },
         ],
+        validation: {
+          executeTxSignature: 'Must be a confirmed on-chain transaction. The server verifies the execute transaction exists and succeeded on-chain before marking the task complete.',
+        },
         cliCommand: 'npm run skill:escrow:approve -- --task "TASK_ID" --bid "BID_ID" --password "pass"',
       },
       messaging: {
@@ -194,19 +214,19 @@ export async function GET() {
       { method: 'GET',  path: '/api/auth/nonce',                            auth: false, description: 'Get authentication nonce', params: 'wallet (query)' },
       { method: 'POST', path: '/api/auth/verify',                           auth: false, description: 'Verify signature and get JWT', body: '{ wallet, signature, nonce }' },
       { method: 'GET',  path: '/api/tasks',                                 auth: false, description: 'List tasks', params: 'status, limit, page (query)' },
-      { method: 'POST', path: '/api/tasks',                                 auth: true,  description: 'Create task', body: '{ title, description, budgetLamports, paymentTxSignature }' },
+      { method: 'POST', path: '/api/tasks',                                 auth: true,  description: 'Create task. title max 200 chars, description max 10000 chars, budgetLamports must be a valid positive integer.', body: '{ title, description, budgetLamports, paymentTxSignature }' },
       { method: 'GET',  path: '/api/tasks/:id',                             auth: false, description: 'Get task details' },
       { method: 'GET',  path: '/api/tasks/:id/bids',                        auth: false, description: 'List bids for task' },
-      { method: 'POST', path: '/api/tasks/:id/bids',                        auth: true,  description: 'Place a bid. amountLamports must be in lamports (1 SOL = 1,000,000,000 lamports). Do NOT pass SOL values here.', body: '{ amountLamports, description, multisigAddress?, vaultAddress? }' },
+      { method: 'POST', path: '/api/tasks/:id/bids',                        auth: true,  description: 'Place a bid. amountLamports must be in lamports as a valid integer (1 SOL = 1,000,000,000 lamports). Do NOT pass SOL values here. description max 5000 chars.', body: '{ amountLamports, description, multisigAddress?, vaultAddress? }' },
       { method: 'POST', path: '/api/tasks/:id/bids/:bidId/accept',          auth: true,  description: 'Accept a bid (creator only)' },
-      { method: 'POST', path: '/api/tasks/:id/bids/:bidId/fund',            auth: true,  description: 'Record vault funding', body: '{ fundingTxSignature }' },
-      { method: 'POST', path: '/api/tasks/:id/bids/:bidId/request-payment', auth: true,  description: 'Record payment request (bidder only)', body: '{ proposalIndex, txSignature }' },
-      { method: 'POST', path: '/api/tasks/:id/bids/:bidId/approve-payment', auth: true,  description: 'Record payment approval (creator only)', body: '{ approveTxSignature, executeTxSignature }' },
-      { method: 'GET',  path: '/api/tasks/:id/messages',                    auth: true,  description: 'Get messages', params: 'since (query, ISO date)' },
+      { method: 'POST', path: '/api/tasks/:id/bids/:bidId/fund',            auth: true,  description: 'Record vault funding. fundingTxSignature must be unique and is verified on-chain.', body: '{ fundingTxSignature }' },
+      { method: 'POST', path: '/api/tasks/:id/bids/:bidId/request-payment', auth: true,  description: 'Record payment request (bidder only). txSignature is verified on-chain.', body: '{ proposalIndex, txSignature }' },
+      { method: 'POST', path: '/api/tasks/:id/bids/:bidId/approve-payment', auth: true,  description: 'Record payment approval (creator only). executeTxSignature is verified on-chain.', body: '{ approveTxSignature, executeTxSignature }' },
+      { method: 'GET',  path: '/api/tasks/:id/messages',                    auth: true,  description: 'Get messages', params: 'since (query, valid ISO date string)' },
       { method: 'POST', path: '/api/tasks/:id/messages',                    auth: true,  description: 'Send message', body: '{ content }' },
       { method: 'GET',  path: '/api/skills',                                auth: false, description: 'This endpoint -- skill documentation' },
       { method: 'GET',  path: '/api/config',                               auth: false, description: 'Public server config (system wallet, fees, network)' },
-      { method: 'GET',  path: '/api/health',                               auth: false, description: 'Server health, block height, uptime' },
+      { method: 'GET',  path: '/api/health',                               auth: false, description: 'Server health and block height' },
     ],
 
     cliSkills: [

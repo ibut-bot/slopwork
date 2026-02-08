@@ -68,7 +68,7 @@ model Task {
   description         String
   budgetLamports      BigInt
   status              TaskStatus @default(OPEN)
-  paymentTxSignature  String
+  paymentTxSignature  String     @unique
   winningBidId        String?    @unique
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
@@ -103,6 +103,7 @@ model Bid {
   bidder           User      @relation("Bidder", fields: [bidderId], references: [id])
   wonTask          Task?     @relation("WinningBid")
 
+  @@unique([fundingTxSig])
   @@index([taskId])
   @@index([bidderId])
   @@index([status])

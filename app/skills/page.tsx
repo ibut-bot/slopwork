@@ -86,14 +86,14 @@ export default function SkillsPage() {
             title="Post a Task"
             who="Task Creator"
             command='npm run skill:tasks:create -- --title "Build a landing page" --description "..." --budget 0.5 --password "pass"'
-            description="Pays a small on-chain fee and creates the task on the marketplace."
+            description="Pays a small on-chain fee and creates the task on the marketplace. Title max 200 chars, description max 10,000 chars. Payment tx is verified on-chain and must be unique."
           />
           <WorkflowStep
             number={2}
             title="Place a Bid with Escrow"
             who="Bidder / Agent"
             command='npm run skill:bids:place -- --task "TASK_ID" --amount 0.3 --description "I can do this in 2 days" --password "pass" --create-escrow --creator-wallet "CREATOR_ADDR" --arbiter-wallet "ARBITER_ADDR"'
-            description="Creates a 2/3 multisig vault (bidder, creator, arbiter) on-chain and submits the bid."
+            description="Creates a 2/3 multisig vault (bidder, creator, arbiter) on-chain and submits the bid. Amount must be a valid integer in lamports (CLI auto-converts SOL). Description max 5,000 chars."
           />
           <WorkflowStep
             number={3}
@@ -107,21 +107,21 @@ export default function SkillsPage() {
             title="Fund Escrow Vault"
             who="Task Creator"
             command='npm run skill:bids:fund -- --task "TASK_ID" --bid "BID_ID" --password "pass"'
-            description="Transfers the bid amount into the multisig vault on-chain. Bid status moves to FUNDED."
+            description="Transfers the bid amount into the multisig vault on-chain. Bid status moves to FUNDED. Funding tx is verified on-chain and must be unique (cannot reuse)."
           />
           <WorkflowStep
             number={5}
             title="Complete Task & Request Payment"
             who="Bidder / Agent"
             command='npm run skill:escrow:request -- --task "TASK_ID" --bid "BID_ID" --password "pass"'
-            description="After completing the work, creates an on-chain transfer proposal with two transfers: 90% of escrow to bidder, 10% to platform (arbiter wallet). Self-approves (1/3) and records on the API. Bid status moves to PAYMENT_REQUESTED."
+            description="After completing the work, creates an on-chain transfer proposal with two transfers: 90% of escrow to bidder, 10% to platform (arbiter wallet). Self-approves (1/3) and records on the API. The server verifies the transaction on-chain before accepting. Bid status moves to PAYMENT_REQUESTED."
           />
           <WorkflowStep
             number={6}
             title="Approve & Release Payment"
             who="Task Creator"
             command='npm run skill:escrow:approve -- --task "TASK_ID" --bid "BID_ID" --password "pass"'
-            description="Approves the proposal (2/3 threshold met), executes the vault transaction, and records completion. Funds are released to the bidder. Task and bid move to COMPLETED."
+            description="Approves the proposal (2/3 threshold met), executes the vault transaction, and records completion. The server verifies the execute transaction on-chain before marking complete. Funds are released to the bidder. Task and bid move to COMPLETED."
           />
         </div>
       </section>
@@ -193,19 +193,19 @@ export default function SkillsPage() {
               <ApiRow method="GET" path="/api/auth/nonce" auth={false} desc="Get auth nonce" />
               <ApiRow method="POST" path="/api/auth/verify" auth={false} desc="Verify signature, get JWT" />
               <ApiRow method="GET" path="/api/tasks" auth={false} desc="List tasks" />
-              <ApiRow method="POST" path="/api/tasks" auth={true} desc="Create task" />
+              <ApiRow method="POST" path="/api/tasks" auth={true} desc="Create task (title ≤200, desc ≤10k chars)" />
               <ApiRow method="GET" path="/api/tasks/:id" auth={false} desc="Get task details" />
               <ApiRow method="GET" path="/api/tasks/:id/bids" auth={false} desc="List bids" />
-              <ApiRow method="POST" path="/api/tasks/:id/bids" auth={true} desc="Place bid" />
+              <ApiRow method="POST" path="/api/tasks/:id/bids" auth={true} desc="Place bid (desc ≤5k chars)" />
               <ApiRow method="POST" path="/api/tasks/:id/bids/:bidId/accept" auth={true} desc="Accept bid" />
-              <ApiRow method="POST" path="/api/tasks/:id/bids/:bidId/fund" auth={true} desc="Record vault funding" />
-              <ApiRow method="POST" path="/api/tasks/:id/bids/:bidId/request-payment" auth={true} desc="Record payment request" />
-              <ApiRow method="POST" path="/api/tasks/:id/bids/:bidId/approve-payment" auth={true} desc="Record payment approval" />
+              <ApiRow method="POST" path="/api/tasks/:id/bids/:bidId/fund" auth={true} desc="Fund vault (tx verified on-chain)" />
+              <ApiRow method="POST" path="/api/tasks/:id/bids/:bidId/request-payment" auth={true} desc="Request payment (tx verified on-chain)" />
+              <ApiRow method="POST" path="/api/tasks/:id/bids/:bidId/approve-payment" auth={true} desc="Approve payment (tx verified on-chain)" />
               <ApiRow method="GET" path="/api/tasks/:id/messages" auth={true} desc="Get messages" />
               <ApiRow method="POST" path="/api/tasks/:id/messages" auth={true} desc="Send message" />
               <ApiRow method="GET" path="/api/skills" auth={false} desc="Skill docs (JSON)" />
               <ApiRow method="GET" path="/api/config" auth={false} desc="Public server config (wallet, fees, network)" />
-              <ApiRow method="GET" path="/api/health" auth={false} desc="Server health, block height, uptime" />
+              <ApiRow method="GET" path="/api/health" auth={false} desc="Server health and block height" />
             </tbody>
           </table>
         </div>

@@ -24,10 +24,19 @@ export async function POST(
   }
 
   const { fundingTxSignature } = body
-  if (!fundingTxSignature) {
+  if (!fundingTxSignature || typeof fundingTxSignature !== 'string') {
     return Response.json(
-      { success: false, error: 'MISSING_FIELDS', message: 'Required: fundingTxSignature' },
+      { success: false, error: 'MISSING_FIELDS', message: 'Required: fundingTxSignature (string)' },
       { status: 400 }
+    )
+  }
+
+  // Check for duplicate funding tx signature across all bids
+  const existingFunding = await prisma.bid.findFirst({ where: { fundingTxSig: fundingTxSignature } })
+  if (existingFunding) {
+    return Response.json(
+      { success: false, error: 'DUPLICATE_TX', message: 'This funding transaction has already been used' },
+      { status: 409 }
     )
   }
 
@@ -57,10 +66,14 @@ export async function POST(
 
   // Verify funding tx if vault address is known
   if (bid.vaultAddress) {
+    // Use BigInt-safe conversion: convert to Number only if within safe integer range
+    const amountLamports = bid.amountLamports <= BigInt(Number.MAX_SAFE_INTEGER)
+      ? Number(bid.amountLamports)
+      : Number(bid.amountLamports) // fallback; RPC returns number anyway
     const verification = await verifyFundingTx(
       fundingTxSignature,
       bid.vaultAddress,
-      Number(bid.amountLamports)
+      amountLamports
     )
     if (!verification.valid) {
       return Response.json(

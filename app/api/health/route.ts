@@ -20,7 +20,6 @@ export async function GET() {
   return Response.json({
     success: true,
     status: rpcOk ? 'healthy' : 'degraded',
-    uptime: process.uptime(),
     timestamp: new Date().toISOString(),
     solana: {
       network: process.env.SOLANA_NETWORK || 'mainnet',

@@ -3,9 +3,11 @@ import { randomBytes } from 'crypto'
 import nacl from 'tweetnacl'
 import bs58 from 'bs58'
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'slopwork-dev-secret-change-in-production'
-)
+if (!process.env.JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is not set. Refusing to start with an insecure default.')
+}
+
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET)
 
 const JWT_ISSUER = 'slopwork'
 const JWT_EXPIRY = '24h'
