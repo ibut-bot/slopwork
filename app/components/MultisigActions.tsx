@@ -25,6 +25,7 @@ interface MultisigActionsProps {
   proposalIndex: number | null
   paymentTxSig: string | null
   bidderWallet: string
+  bidderUsername?: string | null
   bidderProfilePic?: string | null
   isCreator: boolean
   isBidder: boolean
@@ -41,6 +42,7 @@ export default function MultisigActions({
   proposalIndex,
   paymentTxSig,
   bidderWallet,
+  bidderUsername,
   bidderProfilePic,
   isCreator,
   isBidder,
@@ -239,7 +241,7 @@ export default function MultisigActions({
                   {bidderWallet.slice(0, 2)}
                 </span>
               )}
-              {bidderWallet.slice(0, 6)}...{bidderWallet.slice(-4)}
+              {bidderUsername || `${bidderWallet.slice(0, 6)}...${bidderWallet.slice(-4)}`}
             </Link>
           </p>
         </div>

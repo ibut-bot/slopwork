@@ -15,6 +15,7 @@ interface Attachment {
 interface Message {
   id: string
   senderWallet: string
+  senderUsername?: string | null
   senderProfilePic?: string | null
   content: string
   attachments?: Attachment[]
@@ -24,6 +25,7 @@ interface Message {
 interface Conversation {
   bidderId: string
   bidderWallet: string
+  bidderUsername?: string | null
   bidderProfilePic?: string | null
   messageCount: number
   lastMessageAt: string | null
@@ -34,7 +36,7 @@ interface ChatProps {
   isCreator: boolean
   // For bidders, this is not needed (they always talk to creator)
   // For creators, this is the list of bidders they can message
-  bidders?: { id: string; wallet: string; profilePic?: string | null }[]
+  bidders?: { id: string; wallet: string; username?: string | null; profilePic?: string | null }[]
   // Controlled mode: parent can set selected bidder (e.g., when clicking a bid card)
   selectedBidderId?: string | null
   onBidderChange?: (bidderId: string | null) => void
@@ -291,7 +293,7 @@ export default function Chat({ taskId, isCreator, bidders = [], selectedBidderId
                   {selectedBidderWallet.slice(0, 2)}
                 </span>
               )}
-              <span>{selectedBidderWallet.slice(0, 6)}...{selectedBidderWallet.slice(-4)}</span>
+              <span>{selectedBidder && 'bidderUsername' in selectedBidder && selectedBidder.bidderUsername ? selectedBidder.bidderUsername : selectedBidder && 'username' in selectedBidder && (selectedBidder as { username?: string | null }).username ? (selectedBidder as { username?: string | null }).username : `${selectedBidderWallet.slice(0, 6)}...${selectedBidderWallet.slice(-4)}`}</span>
             </Link>
           </div>
         )}
@@ -330,7 +332,7 @@ export default function Chat({ taskId, isCreator, bidders = [], selectedBidderId
               }`}>
                 {!isMe && (
                   <Link href={`/u/${msg.senderWallet}`} className="mb-0.5 block text-xs font-medium opacity-60 hover:opacity-100">
-                    {msg.senderWallet.slice(0, 4)}...{msg.senderWallet.slice(-4)}
+                    {msg.senderUsername || `${msg.senderWallet.slice(0, 4)}...${msg.senderWallet.slice(-4)}`}
                   </Link>
                 )}
                 {msg.content && <p>{msg.content}</p>}

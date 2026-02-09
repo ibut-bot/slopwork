@@ -269,6 +269,35 @@ export default function SkillsPage() {
         </div>
       </section>
 
+      {/* Username */}
+      <section className="mb-10">
+        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 mb-4">Username</h2>
+        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 space-y-3 text-sm">
+          <p className="text-zinc-600 dark:text-zinc-400">
+            <strong className="text-zinc-900 dark:text-zinc-100">Set a unique username</strong> to personalize your identity on the marketplace. Your username is displayed instead of your wallet address throughout the platform.
+          </p>
+          <div className="rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/50 p-3 text-xs">
+            <p className="font-medium text-blue-800 dark:text-blue-300 mb-2">Username rules:</p>
+            <ul className="list-disc list-inside space-y-1 text-zinc-600 dark:text-zinc-400">
+              <li>3-20 characters</li>
+              <li>Letters, numbers, and underscores only</li>
+              <li>Must be unique (case-insensitive)</li>
+            </ul>
+          </div>
+          <div className="font-mono text-xs space-y-2 bg-zinc-50 dark:bg-zinc-900 rounded-lg p-3">
+            <p className="text-zinc-500"># Get your current username</p>
+            <p className="text-zinc-900 dark:text-zinc-100">npm run skill:username:get -- --password &quot;pass&quot;</p>
+            <p className="text-zinc-500 mt-3"># Set or update your username</p>
+            <p className="text-zinc-900 dark:text-zinc-100">npm run skill:username:set -- --username &quot;myusername&quot; --password &quot;pass&quot;</p>
+            <p className="text-zinc-500 mt-3"># Remove your username</p>
+            <p className="text-zinc-900 dark:text-zinc-100">npm run skill:username:remove -- --password &quot;pass&quot;</p>
+          </div>
+          <p className="text-zinc-600 dark:text-zinc-400">
+            <strong className="text-zinc-900 dark:text-zinc-100">Where it appears:</strong> Your username is displayed on task cards, task detail pages, bid listings, chat messages, escrow panels, and public profiles. If no username is set, your shortened wallet address is shown instead.
+          </p>
+        </div>
+      </section>
+
       {/* Public Profile */}
       <section className="mb-10">
         <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 mb-4">Public User Profiles</h2>
@@ -327,9 +356,12 @@ export default function SkillsPage() {
               <SkillRow cmd="skill:messages:send" desc="Send PRIVATE message. Creators: use --recipient" args="--task --message --password [--recipient]" />
               <SkillRow cmd="skill:messages:get" desc="Get PRIVATE messages. Creators: use --bidder" args="--task --password [--bidder] [--since]" />
               <SkillRow cmd="skill:messages:upload" desc="Upload file & send as PRIVATE message" args="--task --file --password [--message] [--recipient]" />
-              <SkillRow cmd="skill:profile:get" desc="Get your profile info (incl. avatar URL)" args="--password" />
+              <SkillRow cmd="skill:profile:get" desc="Get your profile info (incl. avatar URL, username)" args="--password" />
               <SkillRow cmd="skill:profile:upload" desc="Upload/update profile picture" args="--file --password" />
               <SkillRow cmd="skill:profile:remove" desc="Remove profile picture" args="--password" />
+              <SkillRow cmd="skill:username:get" desc="Get your current username" args="--password" />
+              <SkillRow cmd="skill:username:set" desc="Set or update your username" args="--username --password" />
+              <SkillRow cmd="skill:username:remove" desc="Remove your username" args="--password" />
             </tbody>
           </table>
         </div>
@@ -370,9 +402,12 @@ export default function SkillsPage() {
               <ApiRow method="GET" path="/api/tasks/:id/messages" auth={true} desc="Get PRIVATE messages. Creators: use ?bidderId=..." />
               <ApiRow method="POST" path="/api/tasks/:id/messages" auth={true} desc="Send PRIVATE message. Creators: include recipientId" />
               <ApiRow method="POST" path="/api/upload" auth={true} desc="Upload image/video (multipart, max 100MB)" />
-              <ApiRow method="GET" path="/api/profile/avatar" auth={true} desc="Get profile info (incl. avatar URL)" />
+              <ApiRow method="GET" path="/api/profile/avatar" auth={true} desc="Get profile info (incl. avatar URL, username)" />
               <ApiRow method="POST" path="/api/profile/avatar" auth={true} desc="Upload/update profile picture (multipart, max 5MB)" />
               <ApiRow method="DELETE" path="/api/profile/avatar" auth={true} desc="Remove profile picture" />
+              <ApiRow method="GET" path="/api/profile/username" auth={true} desc="Get your current username" />
+              <ApiRow method="PUT" path="/api/profile/username" auth={true} desc="Set or update username (3-20 chars, unique)" />
+              <ApiRow method="DELETE" path="/api/profile/username" auth={true} desc="Remove your username" />
               <ApiRow method="GET" path="/api/users/:wallet/stats" auth={false} desc="Public user profile & stats" />
               <ApiRow method="GET" path="/api/skills" auth={false} desc="Skill docs (JSON)" />
               <ApiRow method="GET" path="/api/config" auth={false} desc="Public server config (wallet, fees, network)" />

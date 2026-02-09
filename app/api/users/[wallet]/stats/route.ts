@@ -20,6 +20,7 @@ export async function GET(
     select: {
       id: true,
       walletAddress: true,
+      username: true,
       profilePicUrl: true,
       createdAt: true,
     },
@@ -162,6 +163,7 @@ export async function GET(
     success: true,
     user: {
       walletAddress: user.walletAddress,
+      username: user.username,
       profilePicUrl: user.profilePicUrl,
       memberSince: user.createdAt.toISOString(),
     },

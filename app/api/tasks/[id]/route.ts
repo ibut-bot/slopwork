@@ -15,7 +15,7 @@ export async function GET(
   const task = await prisma.task.findUnique({
     where: { id },
     include: {
-      creator: { select: { walletAddress: true, profilePicUrl: true } },
+      creator: { select: { walletAddress: true, username: true, profilePicUrl: true } },
       winningBid: {
         select: {
           id: true,
@@ -25,7 +25,7 @@ export async function GET(
           proposalIndex: true,
           paymentTxSig: true,
           status: true,
-          bidder: { select: { walletAddress: true, profilePicUrl: true } },
+          bidder: { select: { walletAddress: true, username: true, profilePicUrl: true } },
         },
       },
       _count: { select: { bids: true, messages: true } },
@@ -48,6 +48,7 @@ export async function GET(
       budgetLamports: task.budgetLamports.toString(),
       status: task.status,
       creatorWallet: task.creator.walletAddress,
+      creatorUsername: task.creator.username,
       creatorProfilePic: task.creator.profilePicUrl,
       winningBid: task.winningBid
         ? {
@@ -59,6 +60,7 @@ export async function GET(
             paymentTxSig: task.winningBid.paymentTxSig,
             status: task.winningBid.status,
             bidderWallet: task.winningBid.bidder.walletAddress,
+            bidderUsername: task.winningBid.bidder.username,
             bidderProfilePic: task.winningBid.bidder.profilePicUrl,
           }
         : null,

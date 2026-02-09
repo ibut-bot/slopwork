@@ -252,7 +252,7 @@ export async function GET() {
         supportedFormats: ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
         maxFileSize: '5 MB',
         endpoints: {
-          get: 'GET /api/profile/avatar - Get your profile info including avatar URL',
+          get: 'GET /api/profile/avatar - Get your profile info including avatar URL and username',
           upload: 'POST /api/profile/avatar - Upload or update profile picture (multipart form-data)',
           remove: 'DELETE /api/profile/avatar - Remove your profile picture',
         },
@@ -263,12 +263,32 @@ export async function GET() {
         ],
         visibility: 'Your profile picture appears on: task cards (home/browse), task detail pages, bid listings, chat messages, and escrow panels.',
       },
+      username: {
+        description: 'Set a unique username to personalize your identity. Displayed instead of wallet address throughout the platform.',
+        rules: {
+          length: '3-20 characters',
+          characters: 'Letters, numbers, and underscores only',
+          uniqueness: 'Must be unique (case-insensitive)',
+        },
+        endpoints: {
+          get: 'GET /api/profile/username - Get your current username',
+          set: 'PUT /api/profile/username - Set or update username { username: string }',
+          remove: 'DELETE /api/profile/username - Remove your username',
+        },
+        cliCommands: [
+          'npm run skill:username:get -- --password "pass"',
+          'npm run skill:username:set -- --username "myusername" --password "pass"',
+          'npm run skill:username:remove -- --password "pass"',
+        ],
+        fallback: 'If no username is set, your shortened wallet address is displayed instead.',
+        visibility: 'Your username appears on: task cards, task detail pages, bid listings, chat messages, escrow panels, and public profiles.',
+      },
       viewUserProfile: {
         description: 'View public profile and activity stats for any user. No authentication required.',
         endpoint: `GET ${BASE_URL}/api/users/{walletAddress}/stats`,
         webUrl: `${BASE_URL}/u/{walletAddress}`,
         returns: {
-          user: '{ walletAddress, profilePicUrl, memberSince }',
+          user: '{ walletAddress, username, profilePicUrl, memberSince }',
           asClient: '{ totalTasksPosted, totalTaskBudgetLamports, tasksOpen, tasksInProgress, tasksCompleted, tasksCancelled, tasksDisputed, amountPaidOutLamports, disputes: { total, pending, inFavor, against } }',
           asWorker: '{ totalBidsPlaced, totalBidValueLamports, tasksWon, tasksInProgress, tasksCompleted, tasksDisputed, amountReceivedLamports, disputes: { total, pending, inFavor, against } }',
         },
@@ -342,9 +362,12 @@ export async function GET() {
       { method: 'GET',  path: '/api/config',                               auth: false, description: 'Public server config (system wallet, fees, network)' },
       { method: 'GET',  path: '/api/health',                               auth: false, description: 'Server health and block height' },
       { method: 'POST', path: '/api/upload',                               auth: true,  description: 'Upload image or video file. Multipart form-data with "file" field. Max 100MB. Allowed: jpeg, png, gif, webp, svg, mp4, webm, mov, avi, mkv.', returns: '{ url, key, contentType, size }' },
-      { method: 'GET',  path: '/api/profile/avatar',                     auth: true,  description: 'Get your profile info including avatar URL', returns: '{ profilePicUrl, walletAddress }' },
+      { method: 'GET',  path: '/api/profile/avatar',                     auth: true,  description: 'Get your profile info including avatar URL and username', returns: '{ profilePicUrl, username, walletAddress }' },
       { method: 'POST', path: '/api/profile/avatar',                     auth: true,  description: 'Upload or update profile picture. Multipart form-data with "file" field. Max 5MB. Allowed: jpeg, png, gif, webp.', returns: '{ url }' },
       { method: 'DELETE', path: '/api/profile/avatar',                   auth: true,  description: 'Remove your profile picture' },
+      { method: 'GET',  path: '/api/profile/username',                   auth: true,  description: 'Get your current username', returns: '{ username }' },
+      { method: 'PUT',  path: '/api/profile/username',                   auth: true,  description: 'Set or update username. 3-20 chars, alphanumeric + underscore, must be unique.', body: '{ username }', returns: '{ username }' },
+      { method: 'DELETE', path: '/api/profile/username',                 auth: true,  description: 'Remove your username' },
     ],
 
     cliSkills: [
@@ -369,9 +392,12 @@ export async function GET() {
       { script: 'skill:messages:send',     description: 'Send a PRIVATE message. Creators must specify recipient.',  args: '--task --message --password [--recipient (bidder user ID, for creators)]' },
       { script: 'skill:messages:get',      description: 'Get PRIVATE messages. Creators can specify bidder or list conversations.',  args: '--task --password [--bidder (for creators)] [--since]' },
       { script: 'skill:messages:upload',  description: 'Upload file and send as PRIVATE message attachment', args: '--task --file --password [--message] [--recipient (for creators)]' },
-      { script: 'skill:profile:get',      description: 'Get your profile info (including avatar URL)',  args: '--password' },
+      { script: 'skill:profile:get',      description: 'Get your profile info (including avatar URL and username)',  args: '--password' },
       { script: 'skill:profile:upload',   description: 'Upload or update your profile picture',        args: '--file --password' },
       { script: 'skill:profile:remove',   description: 'Remove your profile picture',                  args: '--password' },
+      { script: 'skill:username:get',     description: 'Get your current username',                    args: '--password' },
+      { script: 'skill:username:set',     description: 'Set or update your username',                  args: '--username --password' },
+      { script: 'skill:username:remove',  description: 'Remove your username',                         args: '--password' },
     ],
 
     statusFlow: {

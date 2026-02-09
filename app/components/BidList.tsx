@@ -16,6 +16,7 @@ import { useState } from 'react'
 interface Bid {
   id: string
   bidderWallet: string
+  bidderUsername?: string | null
   bidderProfilePic?: string | null
   amountLamports: string
   description: string
@@ -134,7 +135,7 @@ export default function BidList({ bids, taskId, isCreator, taskStatus, onBidAcce
                 </div>
               )}
               <span className="text-xs text-zinc-400" title={bid.bidderWallet}>
-                {bid.bidderWallet.slice(0, 4)}...{bid.bidderWallet.slice(-4)}
+                {bid.bidderUsername || `${bid.bidderWallet.slice(0, 4)}...${bid.bidderWallet.slice(-4)}`}
               </span>
             </Link>
           </div>

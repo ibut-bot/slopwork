@@ -33,10 +33,10 @@ export async function GET(request: NextRequest) {
       skip,
       take: limit,
       include: {
-        bidder: { select: { walletAddress: true, profilePicUrl: true } },
+        bidder: { select: { walletAddress: true, username: true, profilePicUrl: true } },
         task: {
           include: {
-            creator: { select: { walletAddress: true, profilePicUrl: true } },
+            creator: { select: { walletAddress: true, username: true, profilePicUrl: true } },
           },
         },
       },
@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
       proposalIndex: b.proposalIndex,
       createdAt: b.createdAt.toISOString(),
       bidderWallet: b.bidder.walletAddress,
+      bidderUsername: b.bidder.username,
       bidderProfilePic: b.bidder.profilePicUrl,
       task: {
         id: b.task.id,
@@ -64,6 +65,7 @@ export async function GET(request: NextRequest) {
         budgetLamports: b.task.budgetLamports.toString(),
         status: b.task.status,
         creatorWallet: b.task.creator.walletAddress,
+        creatorUsername: b.task.creator.username,
         creatorProfilePic: b.task.creator.profilePicUrl,
         url: `${APP_URL}/tasks/${b.task.id}`,
       },

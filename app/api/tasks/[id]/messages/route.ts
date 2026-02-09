@@ -24,7 +24,7 @@ export async function GET(
     include: {
       creator: { select: { id: true, walletAddress: true } },
       winningBid: { select: { bidderId: true, bidder: { select: { id: true, walletAddress: true } } } },
-      bids: { select: { bidderId: true, bidder: { select: { id: true, walletAddress: true, profilePicUrl: true } } } },
+      bids: { select: { bidderId: true, bidder: { select: { id: true, walletAddress: true, username: true, profilePicUrl: true } } } },
     },
   })
 
@@ -89,6 +89,7 @@ export async function GET(
           return {
             bidderId: bid.bidderId,
             bidderWallet: bid.bidder.walletAddress,
+            bidderUsername: bid.bidder.username,
             bidderProfilePic: bid.bidder.profilePicUrl,
             messageCount,
             lastMessageAt: lastMessage?.createdAt.toISOString() || null,
@@ -149,7 +150,7 @@ export async function GET(
     where,
     orderBy: { createdAt: 'asc' },
     take: 100,
-    include: { sender: { select: { walletAddress: true, profilePicUrl: true } } },
+    include: { sender: { select: { walletAddress: true, username: true, profilePicUrl: true } } },
   })
 
   return Response.json({
@@ -157,6 +158,7 @@ export async function GET(
     messages: messages.map((m) => ({
       id: m.id,
       senderWallet: m.sender.walletAddress,
+      senderUsername: m.sender.username,
       senderProfilePic: m.sender.profilePicUrl,
       content: m.content,
       attachments: m.attachments || [],

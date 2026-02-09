@@ -8,6 +8,7 @@ import Link from 'next/link'
 interface UserStats {
   user: {
     walletAddress: string
+    username: string | null
     profilePicUrl: string | null
     memberSince: string
   }
@@ -183,10 +184,15 @@ export default function PublicProfilePage() {
           </div>
         )}
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 font-mono">
-              {user.walletAddress.slice(0, 8)}...{user.walletAddress.slice(-6)}
+          {user.username && (
+            <h1 className="text-xl font-bold text-zinc-900 dark:text-zinc-50 mb-1">
+              {user.username}
             </h1>
+          )}
+          <div className="flex items-center gap-2 mb-1">
+            <p className={`${user.username ? 'text-sm text-zinc-500 dark:text-zinc-400' : 'text-xl font-bold text-zinc-900 dark:text-zinc-50'} font-mono`}>
+              {user.walletAddress.slice(0, 8)}...{user.walletAddress.slice(-6)}
+            </p>
             <button
               onClick={copyWallet}
               className="rounded-full border border-zinc-200 px-2 py-0.5 text-xs font-medium text-zinc-600 transition hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-zinc-600 dark:hover:bg-zinc-800"

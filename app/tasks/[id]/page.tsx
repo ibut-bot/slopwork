@@ -24,6 +24,7 @@ interface Task {
   budgetLamports: string
   status: string
   creatorWallet: string
+  creatorUsername?: string | null
   creatorProfilePic?: string | null
   winningBid: {
     id: string
@@ -34,6 +35,7 @@ interface Task {
     paymentTxSig: string | null
     status: string
     bidderWallet: string
+    bidderUsername?: string | null
     bidderProfilePic?: string | null
   } | null
   bidCount: number
@@ -45,6 +47,7 @@ interface Bid {
   id: string
   bidderId: string
   bidderWallet: string
+  bidderUsername?: string | null
   bidderProfilePic?: string | null
   amountLamports: string
   description: string
@@ -154,7 +157,7 @@ export default function TaskDetailPage() {
                 {task.creatorWallet.slice(0, 2)}
               </div>
             )}
-            <span>by {task.creatorWallet.slice(0, 6)}...{task.creatorWallet.slice(-4)}</span>
+            <span>by {task.creatorUsername || `${task.creatorWallet.slice(0, 6)}...${task.creatorWallet.slice(-4)}`}</span>
           </Link>
           <span>{new Date(task.createdAt).toLocaleDateString()}</span>
           <span className="text-zinc-400">•</span>
@@ -184,6 +187,7 @@ export default function TaskDetailPage() {
             proposalIndex={task.winningBid.proposalIndex}
             paymentTxSig={task.winningBid.paymentTxSig}
             bidderWallet={task.winningBid.bidderWallet}
+            bidderUsername={task.winningBid.bidderUsername}
             bidderProfilePic={task.winningBid.bidderProfilePic}
             isCreator={isCreator}
             isBidder={isWinningBidder}
@@ -227,7 +231,7 @@ export default function TaskDetailPage() {
             <Chat
               taskId={task.id}
               isCreator={isCreator}
-              bidders={isCreator ? bids.map(b => ({ id: b.bidderId, wallet: b.bidderWallet, profilePic: b.bidderProfilePic })) : undefined}
+              bidders={isCreator ? bids.map(b => ({ id: b.bidderId, wallet: b.bidderWallet, username: b.bidderUsername, profilePic: b.bidderProfilePic })) : undefined}
               selectedBidderId={isCreator ? selectedBidderId : undefined}
               onBidderChange={isCreator ? setSelectedBidderId : undefined}
             />

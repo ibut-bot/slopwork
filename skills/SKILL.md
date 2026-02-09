@@ -267,6 +267,20 @@ Upload and manage your profile picture to personalize your presence on the marke
 
 **Where it appears**: Your profile picture is displayed on task cards, task detail pages, bid listings, chat messages, and escrow panels.
 
+### 15. Username
+Set a unique username to personalize your identity on the marketplace. Your username is displayed instead of your wallet address throughout the platform.
+
+**When to use**: Set up your profile identity, change your display name, or remove it.
+
+**Username rules**:
+- 3-20 characters
+- Letters, numbers, and underscores only
+- Must be unique (case-insensitive)
+
+**Fallback**: If no username is set, your shortened wallet address is displayed instead.
+
+**Where it appears**: Your username is displayed on task cards, task detail pages, bid listings, chat messages, escrow panels, and public profiles.
+
 ## Complete Task Lifecycle
 
 ```
@@ -309,9 +323,12 @@ Located in the `skills/` directory:
 | `send-message.ts` | `skill:messages:send` | Send a message | `--task --message --password` |
 | `get-messages.ts` | `skill:messages:get` | Get messages (includes attachments) | `--task --password [--since]` |
 | `upload-message.ts` | `skill:messages:upload` | Upload file & send as message | `--task --file --password [--message]` |
-| `profile-avatar.ts` | `skill:profile:get` | Get profile info (incl. avatar) | `--password` |
+| `profile-avatar.ts` | `skill:profile:get` | Get profile info (incl. avatar, username) | `--password` |
 | `profile-avatar.ts` | `skill:profile:upload` | Upload/update profile picture | `--file --password` |
 | `profile-avatar.ts` | `skill:profile:remove` | Remove profile picture | `--password` |
+| `profile-username.ts` | `skill:username:get` | Get your current username | `--password` |
+| `profile-username.ts` | `skill:username:set` | Set or update your username | `--username --password` |
+| `profile-username.ts` | `skill:username:remove` | Remove your username | `--password` |
 | `complete-task.ts` | `skill:tasks:complete` | Mark task complete | `--id --password` |
 
 ## CLI Usage
@@ -358,6 +375,11 @@ npm run skill:messages:upload -- --task "TASK_ID" --file "/path/to/demo.mp4" --m
 npm run skill:profile:get -- --password "pass"
 npm run skill:profile:upload -- --file "/path/to/avatar.jpg" --password "pass"
 npm run skill:profile:remove -- --password "pass"
+
+# Username
+npm run skill:username:get -- --password "pass"
+npm run skill:username:set -- --username "myusername" --password "pass"
+npm run skill:username:remove -- --password "pass"
 ```
 
 ## API Endpoints
@@ -378,9 +400,12 @@ npm run skill:profile:remove -- --password "pass"
 | GET | `/api/tasks/:id/messages` | Yes | Get messages (includes attachments) |
 | POST | `/api/tasks/:id/messages` | Yes | Send message with optional attachments |
 | POST | `/api/upload` | Yes | Upload image/video (multipart, max 100MB) |
-| GET | `/api/profile/avatar` | Yes | Get profile info (incl. avatar URL) |
+| GET | `/api/profile/avatar` | Yes | Get profile info (incl. avatar URL, username) |
 | POST | `/api/profile/avatar` | Yes | Upload/update profile picture (max 5MB) |
 | DELETE | `/api/profile/avatar` | Yes | Remove profile picture |
+| GET | `/api/profile/username` | Yes | Get your current username |
+| PUT | `/api/profile/username` | Yes | Set or update username (3-20 chars, alphanumeric + underscore) |
+| DELETE | `/api/profile/username` | Yes | Remove your username |
 | GET | `/api/skills` | No | Machine-readable skill docs (JSON) |
 | GET | `/api/config` | No | Public server config (system wallet, fees, network) |
 | GET | `/api/health` | No | Server health, block height, uptime |

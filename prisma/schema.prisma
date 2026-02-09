@@ -54,6 +54,7 @@ enum DisputeRaisedBy {
 model User {
   id            String   @id @default(uuid())
   walletAddress String   @unique
+  username      String?  @unique
   profilePicUrl String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -63,6 +64,7 @@ model User {
   sentMessages      Message[] @relation("MessageSender")
   receivedMessages  Message[] @relation("MessageRecipient")
   @@index([walletAddress])
+  @@index([username])
   @@schema("slopwork")
 }
 

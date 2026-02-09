@@ -33,11 +33,11 @@ export async function GET(request: NextRequest) {
       skip,
       take: limit,
       include: {
-        creator: { select: { walletAddress: true, profilePicUrl: true } },
+        creator: { select: { walletAddress: true, username: true, profilePicUrl: true } },
         _count: { select: { bids: true } },
         winningBid: {
           include: {
-            bidder: { select: { walletAddress: true, profilePicUrl: true } },
+            bidder: { select: { walletAddress: true, username: true, profilePicUrl: true } },
           },
         },
       },
@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
       budgetLamports: t.budgetLamports.toString(),
       status: t.status,
       creatorWallet: t.creator.walletAddress,
+      creatorUsername: t.creator.username,
       creatorProfilePic: t.creator.profilePicUrl,
       bidCount: t._count.bids,
       createdAt: t.createdAt.toISOString(),
@@ -63,6 +64,7 @@ export async function GET(request: NextRequest) {
         amountLamports: t.winningBid.amountLamports.toString(),
         status: t.winningBid.status,
         bidderWallet: t.winningBid.bidder.walletAddress,
+        bidderUsername: t.winningBid.bidder.username,
         bidderProfilePic: t.winningBid.bidder.profilePicUrl,
       } : null,
     })),

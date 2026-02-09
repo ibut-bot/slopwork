@@ -114,6 +114,7 @@ async function main() {
           console.log(JSON.stringify({
             success: true,
             wallet: result.walletAddress,
+            username: result.username,
             profilePicUrl: result.profilePicUrl,
             message: result.profilePicUrl ? 'Profile picture found' : 'No profile picture set',
           }))

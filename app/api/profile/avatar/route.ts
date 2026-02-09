@@ -164,6 +164,7 @@ export async function GET(request: NextRequest) {
   return Response.json({
     success: true,
     profilePicUrl: user?.profilePicUrl || null,
+    username: user?.username || null,
     walletAddress: wallet,
   })
 }
