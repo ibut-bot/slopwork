@@ -390,9 +390,9 @@ export async function createMultisigVaultWA(
   transaction.feePayer = wallet.publicKey
   transaction.add(ix)
 
-  // createKey must partial-sign first
-  transaction.partialSign(createKey)
+  // Phantom wallet signs first, then additional signers (required by Phantom Lighthouse)
   const signedTx = await wallet.signTransaction(transaction)
+  signedTx.partialSign(createKey)
 
   const signature = await connection.sendRawTransaction(signedTx.serialize(), { maxRetries: 5 })
   await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, 'confirmed')
