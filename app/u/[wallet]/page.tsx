@@ -45,6 +45,36 @@ interface UserStats {
   }
 }
 
+interface UserSubmission {
+  id: string
+  description: string
+  attachments: any[] | null
+  createdAt: string
+  outcome: 'won' | 'lost' | 'pending' | 'in_progress'
+  bid: {
+    id: string
+    amountLamports: string
+    status: string
+  }
+  task: {
+    id: string
+    title: string
+    taskType: string
+    status: string
+    budgetLamports: string
+    creatorWallet: string
+    creatorUsername: string | null
+    creatorProfilePic: string | null
+    url: string
+  }
+  payout: {
+    bidAmountLamports: string
+    payoutLamports: string
+    platformFeeLamports: string
+    paid: boolean
+  }
+}
+
 function formatSol(lamports: string | number): string {
   const sol = Number(lamports) / LAMPORTS_PER_SOL
   if (sol === 0) return '0 SOL'
@@ -101,12 +131,20 @@ function DisputeStats({
   )
 }
 
+type ProfileTab = 'stats' | 'submissions'
+
 export default function PublicProfilePage() {
   const { wallet } = useParams<{ wallet: string }>()
   const [stats, setStats] = useState<UserStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [activeTab, setActiveTab] = useState<ProfileTab>('stats')
+  const [submissions, setSubmissions] = useState<UserSubmission[]>([])
+  const [submissionsLoading, setSubmissionsLoading] = useState(false)
+  const [submissionsPage, setSubmissionsPage] = useState(1)
+  const [submissionsTotalPages, setSubmissionsTotalPages] = useState(1)
+  const [submissionsFetched, setSubmissionsFetched] = useState(false)
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -129,6 +167,29 @@ export default function PublicProfilePage() {
       fetchStats()
     }
   }, [wallet])
+
+  useEffect(() => {
+    if (activeTab !== 'submissions' || !wallet) return
+
+    const fetchSubmissions = async () => {
+      setSubmissionsLoading(true)
+      try {
+        const res = await fetch(`/api/users/${wallet}/submissions?page=${submissionsPage}&limit=20`)
+        const data = await res.json()
+        if (data.success) {
+          setSubmissions(data.submissions)
+          setSubmissionsTotalPages(data.pagination?.pages || 1)
+          setSubmissionsFetched(true)
+        }
+      } catch {
+        // ignore
+      } finally {
+        setSubmissionsLoading(false)
+      }
+    }
+
+    fetchSubmissions()
+  }, [activeTab, wallet, submissionsPage])
 
   const copyWallet = () => {
     navigator.clipboard.writeText(wallet).then(() => {
@@ -206,8 +267,187 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
-      {/* As Client Section */}
-      <section className="mb-10">
+      {/* Tab Switcher */}
+      <div className="mb-6 flex gap-2 border-b border-zinc-200 dark:border-zinc-800">
+        <button
+          onClick={() => setActiveTab('stats')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            activeTab === 'stats'
+              ? 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100'
+              : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+          }`}
+        >
+          Stats
+        </button>
+        <button
+          onClick={() => setActiveTab('submissions')}
+          className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            activeTab === 'submissions'
+              ? 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100'
+              : 'border-transparent text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+          }`}
+        >
+          Submissions {submissionsFetched && `(${submissions.length > 0 ? submissions.length + (submissionsTotalPages > 1 ? '+' : '') : 0})`}
+        </button>
+      </div>
+
+      {/* Submissions Tab */}
+      {activeTab === 'submissions' && (
+        <section>
+          {submissionsLoading ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-28 animate-pulse rounded-xl bg-zinc-100 dark:bg-zinc-900" />
+              ))}
+            </div>
+          ) : submissions.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-zinc-300 p-8 text-center dark:border-zinc-800">
+              <p className="text-zinc-500">No submissions yet.</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-4">
+                {submissions.map((sub) => (
+                  <Link
+                    key={sub.id}
+                    href={`/tasks/${sub.task.id}`}
+                    className="block rounded-xl border border-zinc-200 p-4 transition-colors hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700"
+                  >
+                    {/* Top row: task title + outcome badge */}
+                    <div className="mb-2 flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                          {sub.task.title}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                            sub.task.taskType === 'COMPETITION'
+                              ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                              : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400'
+                          }`}>
+                            {sub.task.taskType === 'COMPETITION' ? 'Competition' : 'Quote'}
+                          </span>
+                          <span className="text-xs text-zinc-400">
+                            Budget: {formatSol(sub.task.budgetLamports)}
+                          </span>
+                        </div>
+                      </div>
+                      <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                        sub.outcome === 'won'
+                          ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                          : sub.outcome === 'lost'
+                            ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                            : sub.outcome === 'in_progress'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+                              : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
+                      }`}>
+                        {sub.outcome === 'won' ? 'Won' : sub.outcome === 'lost' ? 'Not Selected' : sub.outcome === 'in_progress' ? 'In Progress' : 'Pending'}
+                      </span>
+                    </div>
+
+                    {/* Submission description preview */}
+                    <p className="mb-2 text-sm text-zinc-600 dark:text-zinc-400 line-clamp-2">
+                      {sub.description}
+                    </p>
+
+                    {/* Attachments */}
+                    {sub.attachments && sub.attachments.length > 0 && (
+                      <div className="mb-2">
+                        <p className="mb-1.5 text-xs font-medium text-zinc-500">
+                          Attachments ({sub.attachments.length})
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" onClick={(e) => e.preventDefault()}>
+                          {sub.attachments.map((att: any, i: number) => (
+                            <a
+                              key={i}
+                              href={att.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="group block overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700"
+                            >
+                              {att.contentType?.startsWith('image/') ? (
+                                <img src={att.url} alt={att.filename || ''} className="h-32 w-full object-cover" />
+                              ) : att.contentType?.startsWith('video/') ? (
+                                <video src={att.url} className="h-32 w-full object-cover" />
+                              ) : (
+                                <div className="flex h-32 items-center justify-center bg-zinc-50 dark:bg-zinc-900">
+                                  <span className="text-xs text-zinc-500">{att.filename || 'File'}</span>
+                                </div>
+                              )}
+                              <div className="px-2 py-1.5">
+                                <p className="truncate text-xs text-zinc-600 group-hover:text-zinc-900 dark:text-zinc-400 dark:group-hover:text-zinc-200">
+                                  {att.filename || 'Download'}
+                                </p>
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Bottom row: bid amount, payout, date */}
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center gap-4">
+                        <span className="text-zinc-600 dark:text-zinc-400">
+                          Bid: <span className="font-semibold text-zinc-900 dark:text-zinc-100">{formatSol(sub.bid.amountLamports)}</span>
+                        </span>
+                        {sub.payout.paid && (
+                          <span className="text-green-600 dark:text-green-400">
+                            Paid: <span className="font-semibold">{formatSol(sub.payout.payoutLamports)}</span>
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-zinc-400">
+                        {new Date(sub.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    {/* Creator info */}
+                    <div className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400">
+                      <span>Posted by</span>
+                      {sub.task.creatorProfilePic ? (
+                        <img src={sub.task.creatorProfilePic} alt="" className="h-4 w-4 rounded-full object-cover" />
+                      ) : (
+                        <div className="flex h-4 w-4 items-center justify-center rounded-full bg-zinc-200 text-[8px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                          {sub.task.creatorWallet.slice(0, 2)}
+                        </div>
+                      )}
+                      <span>{sub.task.creatorUsername || `${sub.task.creatorWallet.slice(0, 4)}...${sub.task.creatorWallet.slice(-4)}`}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {submissionsTotalPages > 1 && (
+                <div className="mt-6 flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => setSubmissionsPage((p) => Math.max(1, p - 1))}
+                    disabled={submissionsPage === 1}
+                    className="rounded-lg border px-3 py-1.5 text-sm disabled:opacity-50 dark:border-zinc-700"
+                  >
+                    Previous
+                  </button>
+                  <span className="text-sm text-zinc-500">
+                    Page {submissionsPage} of {submissionsTotalPages}
+                  </span>
+                  <button
+                    onClick={() => setSubmissionsPage((p) => Math.min(submissionsTotalPages, p + 1))}
+                    disabled={submissionsPage === submissionsTotalPages}
+                    className="rounded-lg border px-3 py-1.5 text-sm disabled:opacity-50 dark:border-zinc-700"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </section>
+      )}
+
+      {/* Stats Tab - As Client Section */}
+      {activeTab === 'stats' && <section className="mb-10">
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
           As Task Poster
         </h2>
@@ -259,10 +499,10 @@ export default function PublicProfilePage() {
           <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-50 mb-3">Disputes (as Task Poster)</h3>
           <DisputeStats disputes={asClient.disputes} />
         </div>
-      </section>
+      </section>}
 
       {/* As Worker Section */}
-      <section>
+      {activeTab === 'stats' && <section>
         <h2 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50 mb-4">
           As Worker
         </h2>
@@ -310,7 +550,7 @@ export default function PublicProfilePage() {
           <h3 className="text-sm font-medium text-zinc-900 dark:text-zinc-50 mb-3">Disputes (as Worker)</h3>
           <DisputeStats disputes={asWorker.disputes} />
         </div>
-      </section>
+      </section>}
     </div>
   )
 }
