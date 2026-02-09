@@ -31,6 +31,8 @@ interface BidListProps {
   isCreator: boolean
   taskStatus: string
   onBidAccepted?: () => void
+  selectedBidId?: string | null
+  onBidSelect?: (bidderId: string) => void
 }
 
 const BID_STATUS_COLORS: Record<string, string> = {
@@ -41,7 +43,7 @@ const BID_STATUS_COLORS: Record<string, string> = {
   COMPLETED: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
 }
 
-export default function BidList({ bids, taskId, isCreator, taskStatus, onBidAccepted }: BidListProps) {
+export default function BidList({ bids, taskId, isCreator, taskStatus, onBidAccepted, selectedBidId, onBidSelect }: BidListProps) {
   const { authFetch } = useAuth()
   const { connection } = useConnection()
   const { publicKey, sendTransaction } = useWallet()
@@ -103,7 +105,17 @@ export default function BidList({ bids, taskId, isCreator, taskStatus, onBidAcce
   return (
     <div className="space-y-3">
       {bids.map((bid) => (
-        <div key={bid.id} className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+        <div
+          key={bid.id}
+          onClick={() => onBidSelect?.(bid.id)}
+          className={`rounded-xl border p-4 transition-colors ${
+            onBidSelect ? 'cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-600' : ''
+          } ${
+            selectedBidId === bid.id
+              ? 'border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-800/50'
+              : 'border-zinc-200 dark:border-zinc-800'
+          }`}
+        >
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">

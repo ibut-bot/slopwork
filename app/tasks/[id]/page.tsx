@@ -70,6 +70,7 @@ export default function TaskDetailPage() {
   const [bids, setBids] = useState<Bid[]>([])
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
+  const [selectedBidderId, setSelectedBidderId] = useState<string | null>(null)
 
   const fetchTask = useCallback(async () => {
     const res = await fetch(`/api/tasks/${id}`)
@@ -119,9 +120,9 @@ export default function TaskDetailPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl">
+    <div className="mx-auto max-w-6xl">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="mb-3 flex items-start justify-between">
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">{task.title}</h1>
           <div className="flex items-center gap-2">
@@ -136,7 +137,8 @@ export default function TaskDetailPage() {
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-4 text-sm text-zinc-500">
+        {/* Task info inline */}
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-zinc-500">
           <span className="font-semibold text-zinc-900 dark:text-zinc-100">
             {formatSol(task.budgetLamports)}
           </span>
@@ -155,93 +157,82 @@ export default function TaskDetailPage() {
             <span>by {task.creatorWallet.slice(0, 6)}...{task.creatorWallet.slice(-4)}</span>
           </Link>
           <span>{new Date(task.createdAt).toLocaleDateString()}</span>
+          <span className="text-zinc-400">•</span>
+          <span>{task.bidCount} bids</span>
+          <span className="text-zinc-400">•</span>
+          <span>{task.messageCount} messages</span>
         </div>
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-3">
-        {/* Main content */}
-        <div className="space-y-8 lg:col-span-2">
-          {/* Description */}
-          <div>
-            <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">Description</h2>
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
-              {task.description}
-            </p>
-          </div>
+      {/* Description */}
+      <div className="mb-6">
+        <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+          {task.description}
+        </p>
+      </div>
 
-          {/* Bids */}
-          <div>
-            <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              Bids ({bids.length})
-            </h2>
+      {/* Winning bid escrow - show above the bids/chat area when applicable */}
+      {task.winningBid && (isCreator || isWinningBidder) && (
+        <div className="mb-6">
+          <MultisigActions
+            taskId={task.id}
+            bidId={task.winningBid.id}
+            bidStatus={task.winningBid.status}
+            vaultAddress={task.winningBid.vaultAddress}
+            multisigAddress={task.winningBid.multisigAddress}
+            amountLamports={task.winningBid.amountLamports}
+            proposalIndex={task.winningBid.proposalIndex}
+            paymentTxSig={task.winningBid.paymentTxSig}
+            bidderWallet={task.winningBid.bidderWallet}
+            bidderProfilePic={task.winningBid.bidderProfilePic}
+            isCreator={isCreator}
+            isBidder={isWinningBidder}
+            onUpdate={() => { fetchTask(); fetchBids() }}
+          />
+        </div>
+      )}
+
+      {/* Bids (left) + Chat (right) layout */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {/* Left: Bids */}
+        <div>
+          <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+            Bids ({bids.length})
+          </h2>
+          <div className="max-h-[500px] overflow-y-auto pr-2">
             <BidList
               bids={bids}
               taskId={task.id}
               isCreator={isCreator}
               taskStatus={task.status}
               onBidAccepted={() => { fetchTask(); fetchBids() }}
+              selectedBidId={bids.find(b => b.bidderId === selectedBidderId)?.id}
+              onBidSelect={isCreator ? (bidId) => {
+                const bid = bids.find(b => b.id === bidId)
+                if (bid) setSelectedBidderId(bid.bidderId)
+              } : undefined}
             />
           </div>
-
           {/* Bid form */}
           {isAuthenticated && !isCreator && task.status === 'OPEN' && !isBidder && (
-            <BidForm taskId={task.id} creatorWallet={task.creatorWallet} onBidPlaced={fetchBids} />
+            <div className="mt-4">
+              <BidForm taskId={task.id} creatorWallet={task.creatorWallet} onBidPlaced={fetchBids} />
+            </div>
           )}
+        </div>
 
-          {/* Chat - Private conversations between creator and individual bidders */}
-          {isAuthenticated && (isCreator || isBidder) && (
+        {/* Right: Chat */}
+        {isAuthenticated && (isCreator || isBidder) && (
+          <div>
             <Chat
               taskId={task.id}
               isCreator={isCreator}
               bidders={isCreator ? bids.map(b => ({ id: b.bidderId, wallet: b.bidderWallet, profilePic: b.bidderProfilePic })) : undefined}
+              selectedBidderId={isCreator ? selectedBidderId : undefined}
+              onBidderChange={isCreator ? setSelectedBidderId : undefined}
             />
-          )}
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-4">
-          {/* Winning bid escrow */}
-          {task.winningBid && (isCreator || isWinningBidder) && (
-            <MultisigActions
-              taskId={task.id}
-              bidId={task.winningBid.id}
-              bidStatus={task.winningBid.status}
-              vaultAddress={task.winningBid.vaultAddress}
-              multisigAddress={task.winningBid.multisigAddress}
-              amountLamports={task.winningBid.amountLamports}
-              proposalIndex={task.winningBid.proposalIndex}
-              paymentTxSig={task.winningBid.paymentTxSig}
-              bidderWallet={task.winningBid.bidderWallet}
-              bidderProfilePic={task.winningBid.bidderProfilePic}
-              isCreator={isCreator}
-              isBidder={isWinningBidder}
-              onUpdate={() => { fetchTask(); fetchBids() }}
-            />
-          )}
-
-          {/* Task info */}
-          <div className="rounded-xl border border-zinc-200 p-4 text-sm dark:border-zinc-800">
-            <h3 className="mb-3 font-semibold text-zinc-900 dark:text-zinc-50">Task Info</h3>
-            <div className="space-y-2 text-zinc-600 dark:text-zinc-400">
-              <div className="flex justify-between">
-                <span>Status</span>
-                <span className="font-medium">{task.status.replace('_', ' ')}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Budget</span>
-                <span className="font-medium">{formatSol(task.budgetLamports)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Bids</span>
-                <span className="font-medium">{task.bidCount}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Messages</span>
-                <span className="font-medium">{task.messageCount}</span>
-              </div>
-            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

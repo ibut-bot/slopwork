@@ -35,6 +35,9 @@ interface ChatProps {
   // For bidders, this is not needed (they always talk to creator)
   // For creators, this is the list of bidders they can message
   bidders?: { id: string; wallet: string; profilePic?: string | null }[]
+  // Controlled mode: parent can set selected bidder (e.g., when clicking a bid card)
+  selectedBidderId?: string | null
+  onBidderChange?: (bidderId: string | null) => void
 }
 
 const ALLOWED_TYPES = [
@@ -43,7 +46,7 @@ const ALLOWED_TYPES = [
 ]
 const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100 MB
 
-export default function Chat({ taskId, isCreator, bidders = [] }: ChatProps) {
+export default function Chat({ taskId, isCreator, bidders = [], selectedBidderId: controlledBidderId, onBidderChange }: ChatProps) {
   const { authFetch, isAuthenticated, wallet } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -52,7 +55,17 @@ export default function Chat({ taskId, isCreator, bidders = [] }: ChatProps) {
   const [pendingFiles, setPendingFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [conversations, setConversations] = useState<Conversation[]>([])
-  const [selectedBidderId, setSelectedBidderId] = useState<string | null>(null)
+  const [internalBidderId, setInternalBidderId] = useState<string | null>(null)
+  
+  // Use controlled value if provided, otherwise use internal state
+  const selectedBidderId = controlledBidderId !== undefined ? controlledBidderId : internalBidderId
+  const setSelectedBidderId = (id: string | null) => {
+    if (onBidderChange) {
+      onBidderChange(id)
+    } else {
+      setInternalBidderId(id)
+    }
+  }
   const bottomRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -264,32 +277,9 @@ export default function Chat({ taskId, isCreator, bidders = [] }: ChatProps) {
   return (
     <div className="flex h-96 flex-col rounded-xl border border-zinc-200 dark:border-zinc-800">
       <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             {isCreator ? 'Private Messages' : 'Messages with Task Creator'}
           </h3>
-          {isCreator && (conversations.length > 0 || bidders.length > 0) && (
-            <select
-              value={selectedBidderId || ''}
-              onChange={(e) => setSelectedBidderId(e.target.value || null)}
-              className="rounded-lg border border-zinc-300 bg-white px-2 py-1 text-xs focus:outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100"
-            >
-              <option value="">Select bidder...</option>
-              {/* Show from conversations if available, else from bidders prop */}
-              {conversations.length > 0
-                ? conversations.map((c) => (
-                    <option key={c.bidderId} value={c.bidderId}>
-                      {c.bidderWallet.slice(0, 4)}...{c.bidderWallet.slice(-4)} ({c.messageCount} msgs)
-                    </option>
-                  ))
-                : bidders.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.wallet.slice(0, 4)}...{b.wallet.slice(-4)}
-                    </option>
-                  ))}
-            </select>
-          )}
-        </div>
         {isCreator && selectedBidderWallet && (
           <div className="mt-1 flex items-center gap-1.5 text-xs text-zinc-500">
             <span>Conversation with</span>
