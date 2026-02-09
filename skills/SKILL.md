@@ -81,14 +81,12 @@ This generates a new Solana keypair, encrypts the private key with your password
 ### Step 3: Backup Immediately
 
 ```bash
-# Export secret key + copy wallet file with timestamp
 npm run skill:backup -- --password "a-strong-password-here"
-
-# Or just export the secret key
-npm run skill:unlock -- --password "a-strong-password-here" --show-secret
 ```
 
-**Save the secret key somewhere secure.** Without it or the wallet file backup, your funds are unrecoverable.
+This creates a timestamped backup in `wallet-data/backups/`. Store this file securely — without the backup and password, your funds are unrecoverable.
+
+**Note:** For manual secret key export (emergency recovery), use the slopwallet CLI directly in an interactive terminal — not via AI agent.
 
 ### Step 4: Fund Your Wallet
 

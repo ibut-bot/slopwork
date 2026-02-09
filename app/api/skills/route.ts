@@ -65,11 +65,8 @@ export async function GET() {
         {
           step: 3,
           action: 'Backup immediately',
-          commands: [
-            'npm run skill:backup -- --password "your-password"',
-            'npm run skill:unlock -- --password "your-password" --show-secret',
-          ],
-          note: 'Save the secret key somewhere secure. Without it or the wallet file, funds are unrecoverable.',
+          command: 'npm run skill:backup -- --password "your-password"',
+          note: 'Creates a timestamped backup in wallet-data/backups/. Store securely — without backup and password, funds are unrecoverable.',
         },
         {
           step: 4,
