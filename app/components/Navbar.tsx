@@ -91,7 +91,7 @@ export default function Navbar() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center">
-            <Image src="/slop favicon.svg" alt="Slopwork" width={40} height={40} />
+            <Image src="/logo.svg" alt="Slopwork" width={40} height={40} />
           </Link>
           <div className="flex items-center gap-4 sm:gap-6">
             <Link href="/tasks" className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">

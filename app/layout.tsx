@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   title: 'Slopwork - Solana Task Marketplace',
   description: 'Post tasks, bid with escrow, get paid via multisig.',
   icons: {
-    icon: '/slop favicon.svg',
+    icon: '/logo.svg',
   },
 }
 
