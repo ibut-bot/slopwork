@@ -74,6 +74,7 @@ export default function SubmissionList({
   const [step, setStep] = useState<'idle' | 'accepting' | 'funding' | 'approving' | 'paying'>('idle')
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [retryBidId, setRetryBidId] = useState<string | null>(null)
+  const [paymentSig, setPaymentSig] = useState<{ bidId: string; signature: string } | null>(null)
 
   const isCompetition = taskType === 'COMPETITION'
 
@@ -189,6 +190,7 @@ export default function SubmissionList({
 
     setPaymentError(null)
     setRetryBidId(null)
+    setPaymentSig({ bidId: bid.id, signature })
     onWinnerSelected?.()
   }
 
@@ -295,6 +297,22 @@ export default function SubmissionList({
                     </a>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Payment success signature (competition) */}
+            {sub.bid && paymentSig?.bidId === sub.bid.id && (
+              <div className="mb-3 rounded-lg bg-green-50 p-3 text-sm text-green-700 dark:bg-green-900/20 dark:text-green-400">
+                Payment successful!{' '}
+                <a
+                  href={`https://orb.helius.dev/tx/${paymentSig.signature}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 font-mono text-xs underline hover:text-green-900 dark:hover:text-green-200"
+                >
+                  {paymentSig.signature.slice(0, 8)}...{paymentSig.signature.slice(-8)}
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                </a>
               </div>
             )}
 
