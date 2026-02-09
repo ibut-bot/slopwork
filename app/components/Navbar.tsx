@@ -102,6 +102,11 @@ export default function Navbar() {
                 Dashboard
               </Link>
             )}
+            {isAuthenticated && (
+              <Link href="/admin/disputes" className="text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
+                Disputes
+              </Link>
+            )}
             <Link href="/skills" className="hidden sm:block text-sm text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50">
               Skills
             </Link>
