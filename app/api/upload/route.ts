@@ -32,7 +32,7 @@ const VIDEO_TYPES = new Set(['video/mp4', 'video/webm', 'video/quicktime', 'vide
  * If the input is already H.264, ffmpeg will still run but with -c:v copy (fast).
  * Returns the transcoded buffer, or null if ffmpeg is not available.
  */
-async function transcodeToH264(inputBuffer: Buffer): Promise<Buffer | null> {
+async function transcodeToH264(inputBuffer: Buffer): Promise<Buffer<ArrayBuffer> | null> {
   let dir: string | null = null
   try {
     dir = await mkdtemp(path.join(tmpdir(), 'upload-'))
@@ -66,7 +66,7 @@ async function transcodeToH264(inputBuffer: Buffer): Promise<Buffer | null> {
       )
     })
 
-    return await readFile(outputPath)
+    return await readFile(outputPath) as Buffer<ArrayBuffer>
   } catch (err) {
     console.error('Transcode failed (will upload original):', err)
     return null
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    let buffer = Buffer.from(await file.arrayBuffer())
+    let buffer: Buffer<ArrayBuffer> = Buffer.from(await file.arrayBuffer())
     let contentType = file.type
     let finalExt = ext
 
