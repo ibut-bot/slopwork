@@ -278,8 +278,45 @@ export default function TaskDetailPage() {
         </div>
       )}
 
-      {/* Submissions section for competition mode or when submissions exist */}
-      {(isCompetition || submissions.length > 0) && (
+      {/* Competition mode: Entries (left) + Chat (right) */}
+      {isCompetition && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div>
+            <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              Entries ({submissions.length})
+            </h2>
+            <div className="max-h-[600px] overflow-y-auto pr-2">
+              <SubmissionList
+                submissions={submissions}
+                isCreator={isCreator}
+                taskId={task.id}
+                taskType={task.taskType}
+                taskStatus={task.status}
+                taskMultisigAddress={task.multisigAddress}
+                taskVaultAddress={task.vaultAddress}
+                onWinnerSelected={refreshAll}
+                selectedBidId={bids.find(b => b.bidderId === selectedBidderId)?.id}
+                onSubmissionSelect={isCreator ? (bidderId) => setSelectedBidderId(bidderId) : undefined}
+              />
+            </div>
+          </div>
+
+          {isAuthenticated && (isCreator || isBidder) && (
+            <div>
+              <Chat
+                taskId={task.id}
+                isCreator={isCreator}
+                bidders={isCreator ? bids.map(b => ({ id: b.bidderId, wallet: b.bidderWallet, username: b.bidderUsername, profilePic: b.bidderProfilePic })) : undefined}
+                selectedBidderId={isCreator ? selectedBidderId : undefined}
+                onBidderChange={isCreator ? setSelectedBidderId : undefined}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Quote mode: Submissions (if any) above, then Bids (left) + Chat (right) */}
+      {!isCompetition && submissions.length > 0 && (
         <div className="mb-6">
           <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
             Submissions ({submissions.length})
@@ -297,54 +334,52 @@ export default function TaskDetailPage() {
         </div>
       )}
 
-      {/* Bids (left) + Chat (right) layout */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Left: Bids */}
-        <div>
-          <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            {isCompetition ? 'Entries' : 'Bids'} ({bids.length})
-          </h2>
-          <div className="max-h-[500px] overflow-y-auto pr-2">
-            <BidList
-              bids={bids}
-              taskId={task.id}
-              isCreator={isCreator}
-              taskStatus={task.status}
-              taskType={task.taskType}
-              onBidAccepted={refreshAll}
-              selectedBidId={bids.find(b => b.bidderId === selectedBidderId)?.id}
-              onBidSelect={isCreator ? (bidId) => {
-                const bid = bids.find(b => b.id === bidId)
-                if (bid) setSelectedBidderId(bid.bidderId)
-              } : undefined}
-            />
-          </div>
-          {/* Bid form (quote mode only -- competition uses CompetitionEntryForm above) */}
-          {isAuthenticated && !isCreator && task.status === 'OPEN' && !isBidder && !isCompetition && (
-            <div className="mt-4">
-              <BidForm
+      {!isCompetition && (
+        <div className="grid gap-6 lg:grid-cols-2">
+          <div>
+            <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+              Bids ({bids.length})
+            </h2>
+            <div className="max-h-[500px] overflow-y-auto pr-2">
+              <BidList
+                bids={bids}
                 taskId={task.id}
-                creatorWallet={task.creatorWallet}
+                isCreator={isCreator}
+                taskStatus={task.status}
                 taskType={task.taskType}
-                onBidPlaced={fetchBids}
+                onBidAccepted={refreshAll}
+                selectedBidId={bids.find(b => b.bidderId === selectedBidderId)?.id}
+                onBidSelect={isCreator ? (bidId) => {
+                  const bid = bids.find(b => b.id === bidId)
+                  if (bid) setSelectedBidderId(bid.bidderId)
+                } : undefined}
+              />
+            </div>
+            {isAuthenticated && !isCreator && task.status === 'OPEN' && !isBidder && (
+              <div className="mt-4">
+                <BidForm
+                  taskId={task.id}
+                  creatorWallet={task.creatorWallet}
+                  taskType={task.taskType}
+                  onBidPlaced={fetchBids}
+                />
+              </div>
+            )}
+          </div>
+
+          {isAuthenticated && (isCreator || isBidder) && (
+            <div>
+              <Chat
+                taskId={task.id}
+                isCreator={isCreator}
+                bidders={isCreator ? bids.map(b => ({ id: b.bidderId, wallet: b.bidderWallet, username: b.bidderUsername, profilePic: b.bidderProfilePic })) : undefined}
+                selectedBidderId={isCreator ? selectedBidderId : undefined}
+                onBidderChange={isCreator ? setSelectedBidderId : undefined}
               />
             </div>
           )}
         </div>
-
-        {/* Right: Chat */}
-        {isAuthenticated && (isCreator || isBidder) && (
-          <div>
-            <Chat
-              taskId={task.id}
-              isCreator={isCreator}
-              bidders={isCreator ? bids.map(b => ({ id: b.bidderId, wallet: b.bidderWallet, username: b.bidderUsername, profilePic: b.bidderProfilePic })) : undefined}
-              selectedBidderId={isCreator ? selectedBidderId : undefined}
-              onBidderChange={isCreator ? setSelectedBidderId : undefined}
-            />
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }

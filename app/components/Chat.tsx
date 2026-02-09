@@ -12,6 +12,17 @@ interface Attachment {
   filename?: string
 }
 
+/** Rewrite external object-storage URLs through /storage proxy */
+function proxyUrl(url: string): string {
+  const endpoint = process.env.NEXT_PUBLIC_HETZNER_ENDPOINT_URL || 'https://hel1.your-objectstorage.com'
+  const bucket = process.env.NEXT_PUBLIC_HETZNER_BUCKET_NAME || 'openclaw83'
+  const prefix = `${endpoint}/${bucket}/`
+  if (url.startsWith(prefix)) {
+    return '/storage/' + url.slice(prefix.length)
+  }
+  return url
+}
+
 interface Message {
   id: string
   senderWallet: string
@@ -350,8 +361,10 @@ export default function Chat({ taskId, isCreator, bidders = [], selectedBidderId
                           </a>
                         ) : att.contentType.startsWith('video/') ? (
                           <video
-                            src={att.url}
+                            src={proxyUrl(att.url)}
                             controls
+                            playsInline
+                            preload="metadata"
                             className="max-w-full rounded-lg max-h-48"
                           />
                         ) : (

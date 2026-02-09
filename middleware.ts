@@ -24,8 +24,9 @@ export function middleware(request: NextRequest) {
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requires unsafe-eval in dev
       "style-src 'self' 'unsafe-inline'", // Tailwind + wallet adapter
       "img-src 'self' data: https:",
+      "media-src 'self' https:",
       "font-src 'self' https://fonts.gstatic.com",
-      "connect-src 'self' https://*.solana.com https://*.helius-rpc.com wss://*.helius-rpc.com wss://*.solana.com https://api.mainnet-beta.solana.com",
+      "connect-src 'self' https: wss://*.helius-rpc.com wss://*.solana.com",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

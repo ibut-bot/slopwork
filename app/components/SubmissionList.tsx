@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { useConnection, useWallet } from '@solana/wallet-adapter-react'
 import { useAuth } from '../hooks/useAuth'
@@ -8,6 +8,18 @@ import { approveAndExecuteWA, createProposalApproveExecuteWA } from '@/lib/solan
 import Link from 'next/link'
 
 const PLATFORM_WALLET = process.env.NEXT_PUBLIC_ARBITER_WALLET_ADDRESS || ''
+
+/** Rewrite external object-storage URLs through our /storage proxy so
+ *  the browser treats them as same-origin (avoids CSP / CORS issues). */
+function proxyUrl(url: string): string {
+  const endpoint = process.env.NEXT_PUBLIC_HETZNER_ENDPOINT_URL || 'https://hel1.your-objectstorage.com'
+  const bucket = process.env.NEXT_PUBLIC_HETZNER_BUCKET_NAME || 'openclaw83'
+  const prefix = `${endpoint}/${bucket}/`
+  if (url.startsWith(prefix)) {
+    return '/storage/' + url.slice(prefix.length)
+  }
+  return url
+}
 
 function formatSol(lamports: string | number): string {
   const sol = Number(lamports) / LAMPORTS_PER_SOL
@@ -55,6 +67,8 @@ interface SubmissionListProps {
   taskMultisigAddress?: string | null
   taskVaultAddress?: string | null
   onWinnerSelected?: () => void
+  selectedBidId?: string | null
+  onSubmissionSelect?: (bidderId: string) => void
 }
 
 export default function SubmissionList({
@@ -66,6 +80,8 @@ export default function SubmissionList({
   taskMultisigAddress,
   taskVaultAddress,
   onWinnerSelected,
+  selectedBidId,
+  onSubmissionSelect,
 }: SubmissionListProps) {
   const { authFetch } = useAuth()
   const { connection } = useConnection()
@@ -218,6 +234,44 @@ export default function SubmissionList({
   const isImage = (ct?: string) => ct?.startsWith('image/')
   const isVideo = (ct?: string) => ct?.startsWith('video/')
 
+  /** Inline video player with error fallback */
+  const VideoPlayer = ({ url, filename, className }: { url: string; filename?: string; className?: string }) => {
+    const [failed, setFailed] = useState(false)
+    const ref = useRef<HTMLVideoElement>(null)
+
+    const onError = useCallback(() => setFailed(true), [])
+
+    if (failed) {
+      return (
+        <div className={`flex flex-col items-center justify-center gap-2 bg-zinc-100 dark:bg-zinc-900 p-4 ${className || ''}`} style={{ minHeight: '120px' }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400">
+            <polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
+            <line x1="1" y1="5" x2="16" y2="19" />
+          </svg>
+          <p className="text-xs text-zinc-500 text-center">Unsupported codec</p>
+          <a href={url} target="_blank" rel="noopener noreferrer" download
+            className="text-xs text-blue-500 hover:text-blue-400 underline">
+            Download to play
+          </a>
+        </div>
+      )
+    }
+
+    return (
+      // eslint-disable-next-line jsx-a11y/media-has-caption
+      <video
+        ref={ref}
+        src={proxyUrl(url)}
+        controls
+        preload="metadata"
+        playsInline
+        onError={onError}
+        className={`w-full bg-black ${className || ''}`}
+        style={{ minHeight: '120px' }}
+      />
+    )
+  }
+
   const getButtonText = (bidId: string) => {
     if (selectingBidId !== bidId) return null
     if (step === 'accepting') return 'Accepting...'
@@ -233,10 +287,19 @@ export default function SubmissionList({
         const canSelect = isCompetition && isCreator && taskStatus === 'OPEN' && sub.bid && sub.bid.status === 'PENDING'
         const canRetry = isCompetition && isCreator && retryBidId === sub.bid?.id && paymentError
 
+        const isSelected = sub.bid && selectedBidId === sub.bid.id
+
         return (
           <div
             key={sub.id}
-            className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800"
+            onClick={() => sub.bid && onSubmissionSelect?.(sub.bid.bidderId)}
+            className={`rounded-xl border p-4 transition-colors ${
+              onSubmissionSelect ? 'cursor-pointer hover:border-zinc-400 dark:hover:border-zinc-600' : ''
+            } ${
+              isSelected
+                ? 'border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-800/50'
+                : 'border-zinc-200 dark:border-zinc-800'
+            }`}
           >
             {/* Bidder info */}
             {sub.bid && (
@@ -254,7 +317,9 @@ export default function SubmissionList({
                       {sub.bid.bidderUsername || `${sub.bid.bidderWallet.slice(0, 4)}...${sub.bid.bidderWallet.slice(-4)}`}
                     </span>
                   </Link>
-                  <span className="text-sm text-zinc-500">{formatSol(sub.bid.amountLamports)}</span>
+                  {!isCompetition && (
+                    <span className="text-sm text-zinc-500">{formatSol(sub.bid.amountLamports)}</span>
+                  )}
                 </div>
                 <span className="text-xs text-zinc-400">
                   {new Date(sub.createdAt).toLocaleDateString()}
@@ -272,30 +337,39 @@ export default function SubmissionList({
               <div className="mb-3 space-y-2">
                 <p className="text-xs font-medium text-zinc-500">Attachments ({sub.attachments.length})</p>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {sub.attachments.map((att, i) => (
-                    <a
-                      key={i}
-                      href={att.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group block overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700"
-                    >
-                      {isImage(att.contentType) ? (
-                        <img src={att.url} alt={att.filename || ''} className="h-32 w-full object-cover" />
-                      ) : isVideo(att.contentType) ? (
-                        <video src={att.url} className="h-32 w-full object-cover" />
-                      ) : (
-                        <div className="flex h-32 items-center justify-center bg-zinc-50 dark:bg-zinc-900">
-                          <span className="text-xs text-zinc-500">{att.filename || 'File'}</span>
-                        </div>
-                      )}
-                      <div className="px-2 py-1.5">
-                        <p className="truncate text-xs text-zinc-600 group-hover:text-zinc-900 dark:text-zinc-400 dark:group-hover:text-zinc-200">
-                          {att.filename || 'Download'}
-                        </p>
+                  {sub.attachments.map((att, i) =>
+                    isVideo(att.contentType) ? (
+                      <div key={i} className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700" onClick={(e) => e.stopPropagation()}>
+                        <VideoPlayer url={att.url} filename={att.filename} />
+                        <a href={att.url} target="_blank" rel="noopener noreferrer" className="block px-2 py-1.5 hover:bg-zinc-50 dark:hover:bg-zinc-800">
+                          <p className="truncate text-xs text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200">
+                            {att.filename || 'Download'}
+                          </p>
+                        </a>
                       </div>
-                    </a>
-                  ))}
+                    ) : (
+                      <a
+                        key={i}
+                        href={att.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group block overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700"
+                      >
+                        {isImage(att.contentType) ? (
+                          <img src={att.url} alt={att.filename || ''} className="h-32 w-full object-cover" />
+                        ) : (
+                          <div className="flex h-32 items-center justify-center bg-zinc-50 dark:bg-zinc-900">
+                            <span className="text-xs text-zinc-500">{att.filename || 'File'}</span>
+                          </div>
+                        )}
+                        <div className="px-2 py-1.5">
+                          <p className="truncate text-xs text-zinc-600 group-hover:text-zinc-900 dark:text-zinc-400 dark:group-hover:text-zinc-200">
+                            {att.filename || 'Download'}
+                          </p>
+                        </div>
+                      </a>
+                    )
+                  )}
                 </div>
               </div>
             )}
