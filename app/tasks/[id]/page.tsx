@@ -19,6 +19,7 @@ import MultisigActions from '../../components/MultisigActions'
 import SubmissionForm from '../../components/SubmissionForm'
 import SubmissionList from '../../components/SubmissionList'
 import CompetitionEntryForm from '../../components/CompetitionEntryForm'
+import SelectWinnerButton, { type WinnerBid } from '../../components/SelectWinnerButton'
 
 interface Task {
   id: string
@@ -119,6 +120,13 @@ export default function TaskDetailPage() {
   useEffect(() => {
     Promise.all([fetchTask(), fetchBids(), fetchSubmissions()]).finally(() => setLoading(false))
   }, [fetchTask, fetchBids, fetchSubmissions])
+
+  // Auto-select first bidder for competition mode
+  useEffect(() => {
+    if (!selectedBidderId && submissions.length > 0 && submissions[0].bid) {
+      setSelectedBidderId(submissions[0].bid.bidderId)
+    }
+  }, [submissions, selectedBidderId])
 
   const refreshAll = () => {
     fetchTask()
@@ -278,42 +286,134 @@ export default function TaskDetailPage() {
         </div>
       )}
 
-      {/* Competition mode: Entries (left) + Chat (right) */}
-      {isCompetition && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <div>
-            <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-              Entries ({submissions.length})
-            </h2>
-            <div className="max-h-[600px] overflow-y-auto pr-2">
-              <SubmissionList
-                submissions={submissions}
-                isCreator={isCreator}
+      {/* Competition mode: Narrow sidebar (entries) + Chat with pinned submission */}
+      {isCompetition && (() => {
+        // Find the submission for the currently selected bidder
+        const selectedBid = bids.find(b => b.bidderId === selectedBidderId)
+        const selectedSub = selectedBid ? submissions.find(s => s.bidId === selectedBid.id) : null
+        const canSelectWinner = isCreator && task.status === 'OPEN' && selectedBid?.status === 'PENDING'
+
+        // Build pinned content for the chat panel
+        const pinnedContent = selectedSub ? (
+          <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+            <p className="mb-2 text-xs font-medium text-zinc-500">Submission</p>
+            <p className="mb-2 whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300">
+              {selectedSub.description}
+            </p>
+            {selectedSub.attachments && selectedSub.attachments.length > 0 && (
+              <div className="mb-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {(selectedSub.attachments as any[]).map((att: any, i: number) =>
+                  att.contentType?.startsWith('video/') ? (
+                    <div key={i} className="overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                      <video
+                        src={att.url}
+                        controls
+                        preload="metadata"
+                        playsInline
+                        className="w-full bg-black"
+                        style={{ minHeight: '100px' }}
+                      />
+                      <p className="truncate px-2 py-1 text-xs text-zinc-500">{att.filename || 'Video'}</p>
+                    </div>
+                  ) : att.contentType?.startsWith('image/') ? (
+                    <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-700">
+                      <img src={att.url} alt={att.filename || ''} className="h-28 w-full object-cover" />
+                      <p className="truncate px-2 py-1 text-xs text-zinc-500">{att.filename || 'Image'}</p>
+                    </a>
+                  ) : (
+                    <a key={i} href={att.url} target="_blank" rel="noopener noreferrer" className="flex h-20 items-center justify-center rounded-lg border border-zinc-200 text-xs text-blue-500 underline dark:border-zinc-700">
+                      {att.filename || 'Download'}
+                    </a>
+                  )
+                )}
+              </div>
+            )}
+            {canSelectWinner && selectedBid && (
+              <SelectWinnerButton
+                bid={selectedBid as WinnerBid}
                 taskId={task.id}
                 taskType={task.taskType}
-                taskStatus={task.status}
                 taskMultisigAddress={task.multisigAddress}
-                taskVaultAddress={task.vaultAddress}
-                onWinnerSelected={refreshAll}
-                selectedBidId={bids.find(b => b.bidderId === selectedBidderId)?.id}
-                onSubmissionSelect={isCreator ? (bidderId) => setSelectedBidderId(bidderId) : undefined}
+                onDone={refreshAll}
               />
-            </div>
+            )}
           </div>
+        ) : null
 
-          {isAuthenticated && (isCreator || isBidder) && (
+        return (
+          <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
+            {/* Narrow sidebar: entry list */}
             <div>
+              <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+                Entries ({submissions.length})
+              </h2>
+              <div className="max-h-[560px] space-y-1 overflow-y-auto">
+                {submissions.map((sub) => {
+                  const bid = sub.bid
+                  if (!bid) return null
+                  const isActive = bid.bidderId === selectedBidderId
+                  return (
+                    <button
+                      key={sub.id}
+                      onClick={() => setSelectedBidderId(bid.bidderId)}
+                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left transition-colors ${
+                        isActive
+                          ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900'
+                          : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                      }`}
+                    >
+                      {bid.bidderProfilePic ? (
+                        <img src={bid.bidderProfilePic} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
+                      ) : (
+                        <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[10px] font-medium ${
+                          isActive
+                            ? 'bg-zinc-700 text-zinc-200 dark:bg-zinc-300 dark:text-zinc-700'
+                            : 'bg-zinc-200 text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300'
+                        }`}>
+                          {bid.bidderWallet.slice(0, 2)}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className={`truncate text-xs font-medium ${isActive ? '' : 'text-zinc-900 dark:text-zinc-100'}`}>
+                          {bid.bidderUsername || `${bid.bidderWallet.slice(0, 4)}...${bid.bidderWallet.slice(-4)}`}
+                        </p>
+                        <p className={`truncate text-[10px] ${isActive ? 'opacity-70' : 'text-zinc-400'}`}>
+                          {new Date(sub.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      {sub.attachments && sub.attachments.length > 0 && (
+                        <span className={`text-[10px] ${isActive ? 'opacity-70' : 'text-zinc-400'}`}>
+                          {sub.attachments.length} file{sub.attachments.length > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </button>
+                  )
+                })}
+                {submissions.length === 0 && (
+                  <p className="px-3 py-4 text-center text-xs text-zinc-400">No entries yet.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Chat panel with pinned submission */}
+            {isAuthenticated && (isCreator || isBidder) ? (
               <Chat
                 taskId={task.id}
                 isCreator={isCreator}
                 bidders={isCreator ? bids.map(b => ({ id: b.bidderId, wallet: b.bidderWallet, username: b.bidderUsername, profilePic: b.bidderProfilePic })) : undefined}
                 selectedBidderId={isCreator ? selectedBidderId : undefined}
                 onBidderChange={isCreator ? setSelectedBidderId : undefined}
+                pinnedContent={pinnedContent}
               />
-            </div>
-          )}
-        </div>
-      )}
+            ) : (
+              <div className="flex items-center justify-center rounded-xl border border-zinc-200 p-8 dark:border-zinc-800">
+                <p className="text-sm text-zinc-500">Sign in to view messages and submissions.</p>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Quote mode: Submissions (if any) above, then Bids (left) + Chat (right) */}
       {!isCompetition && submissions.length > 0 && (

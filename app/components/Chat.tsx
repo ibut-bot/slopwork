@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
 import Link from 'next/link'
 import { useAuth } from '../hooks/useAuth'
 
@@ -51,6 +51,8 @@ interface ChatProps {
   // Controlled mode: parent can set selected bidder (e.g., when clicking a bid card)
   selectedBidderId?: string | null
   onBidderChange?: (bidderId: string | null) => void
+  /** Optional content rendered at the top of the message area (e.g. pinned submission) */
+  pinnedContent?: ReactNode
 }
 
 const ALLOWED_TYPES = [
@@ -59,7 +61,7 @@ const ALLOWED_TYPES = [
 ]
 const MAX_FILE_SIZE = 100 * 1024 * 1024 // 100 MB
 
-export default function Chat({ taskId, isCreator, bidders = [], selectedBidderId: controlledBidderId, onBidderChange }: ChatProps) {
+export default function Chat({ taskId, isCreator, bidders = [], selectedBidderId: controlledBidderId, onBidderChange, pinnedContent }: ChatProps) {
   const { authFetch, isAuthenticated, wallet } = useAuth()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
@@ -288,7 +290,7 @@ export default function Chat({ taskId, isCreator, bidders = [], selectedBidderId
     : null
 
   return (
-    <div className="flex h-96 flex-col rounded-xl border border-zinc-200 dark:border-zinc-800">
+    <div className="flex h-[600px] flex-col rounded-xl border border-zinc-200 dark:border-zinc-800">
       <div className="border-b border-zinc-200 px-4 py-3 dark:border-zinc-800">
         <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
             {isCreator ? 'Private Messages' : 'Messages with Task Creator'}
@@ -311,14 +313,20 @@ export default function Chat({ taskId, isCreator, bidders = [], selectedBidderId
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Pinned content (e.g. selected submission) */}
+        {pinnedContent && selectedBidderId && (
+          <div className="mb-3">
+            {pinnedContent}
+          </div>
+        )}
         {isCreator && !selectedBidderId && (
           <p className="text-center text-sm text-zinc-400">
             {conversations.length > 0 || bidders.length > 0
-              ? 'Select a bidder to view their private conversation.'
-              : 'No bidders yet. Messages will appear when bidders contact you.'}
+              ? 'Select an entry to view their submission and conversation.'
+              : 'No entries yet. Submissions will appear when participants enter.'}
           </p>
         )}
-        {(!isCreator || selectedBidderId) && messages.length === 0 && (
+        {(!isCreator || selectedBidderId) && messages.length === 0 && !pinnedContent && (
           <p className="text-center text-sm text-zinc-400">No messages yet.</p>
         )}
         {messages.map((msg) => {
