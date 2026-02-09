@@ -176,10 +176,10 @@ export default function PublicProfilePage() {
           <img
             src={user.profilePicUrl}
             alt=""
-            className="h-20 w-20 rounded-full object-cover"
+            className="h-[100px] w-[100px] rounded-full object-cover"
           />
         ) : (
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-200 text-2xl font-bold text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+          <div className="flex h-[100px] w-[100px] items-center justify-center rounded-full bg-zinc-200 text-2xl font-bold text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
             {user.walletAddress.slice(0, 2)}
           </div>
         )}

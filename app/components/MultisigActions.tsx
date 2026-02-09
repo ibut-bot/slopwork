@@ -237,9 +237,9 @@ export default function MultisigActions({
             Bidder:{' '}
             <Link href={`/u/${bidderWallet}`} className="inline-flex items-center gap-1.5 hover:text-zinc-700 dark:hover:text-zinc-300">
               {bidderProfilePic ? (
-                <img src={bidderProfilePic} alt="" className="inline h-4 w-4 rounded-full object-cover" />
+                <img src={bidderProfilePic} alt="" className="inline h-5 w-5 rounded-full object-cover" />
               ) : (
-                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-zinc-200 text-[8px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-zinc-200 text-[8px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
                   {bidderWallet.slice(0, 2)}
                 </span>
               )}

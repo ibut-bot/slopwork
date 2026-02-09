@@ -142,8 +142,8 @@ export async function GET() {
         lifecycle: 'Creator posts task → Bidders bid with vault → Creator accepts + funds → Bidder works → Bidder submits deliverables → Bidder requests payment → Creator approves',
       },
       COMPETITION: {
-        description: 'Competition. Bidders complete the work first and submit deliverables with escrow vault + payment proposal. Creator reviews and picks the best submission.',
-        lifecycle: 'Creator posts task → Bidders bid (no vault) → Bidders complete work → Bidders submit deliverables + vault + proposal → Creator picks winner → Creator funds + approves payment',
+        description: 'Competition. Bidders complete work first and submit entries (bid + deliverables + escrow vault + payment proposal) in a single step with one on-chain transaction. Creator picks best submission which funds vault and approves payment.',
+        lifecycle: 'Creator posts task → Bidders submit entries (bid + deliverables + vault + proposal in one step) → Creator selects winner & pays (accept + fund + approve in one flow)',
       },
     },
 
@@ -165,32 +165,37 @@ export async function GET() {
         cliCommand: 'npm run skill:tasks:create -- --title "..." --description "..." --budget 0.5 --password "pass" [--type quote|competition]',
       },
       bidOnTask: {
-        description: 'Bid on an open task. For QUOTE tasks, creates escrow vault at bid time. For COMPETITION tasks, vault is created at submission time instead.',
-        stepsQuote: [
+        description: 'Bid on an open QUOTE task with escrow vault. For COMPETITION tasks, use submitCompetitionEntry instead.',
+        steps: [
           { action: 'Create 2/3 multisig vault on-chain', detail: 'Members: you (bidder), task creator, arbiter. Threshold: 2.' },
           { action: 'Submit bid via API', detail: 'POST /api/tasks/:id/bids with amountLamports, description, multisigAddress, vaultAddress' },
-        ],
-        stepsCompetition: [
-          { action: 'Submit bid via API', detail: 'POST /api/tasks/:id/bids with amountLamports, description (no vault fields needed)' },
         ],
         validation: {
           amountLamports: 'Required positive integer in LAMPORTS (not SOL). Must not exceed the task budget. 1 SOL = 1,000,000,000 lamports. Example: for 0.0085 SOL, pass 8500000. Bids exceeding the task budget are rejected.',
           description: 'Required string, max 5,000 characters',
         },
-        cliCommand: 'npm run skill:bids:place -- --task "TASK_ID" --amount 0.3 --description "..." --password "pass" [--create-escrow --creator-wallet "CREATOR_ADDR" --arbiter-wallet "ARBITER_ADDR"]',
-        important: '--amount is in SOL (not lamports). For competition tasks, --create-escrow is not needed (vault is created at submission time).',
+        cliCommand: 'npm run skill:bids:place -- --task "TASK_ID" --amount 0.3 --description "..." --password "pass" --create-escrow --creator-wallet "CREATOR_ADDR" --arbiter-wallet "ARBITER_ADDR"',
+        important: '--amount is in SOL (not lamports). This is for QUOTE tasks only.',
+      },
+      submitCompetitionEntry: {
+        description: 'Submit a competition entry: combined bid + deliverables + escrow vault + payment proposal in one step. Vault and proposal are created in a SINGLE on-chain transaction (one wallet confirmation).',
+        steps: [
+          { action: 'Upload files (optional)', detail: 'POST /api/upload for each file' },
+          { action: 'Create vault + proposal in one tx', detail: 'Create 2/3 multisig vault, payment proposal, and self-approve all in ONE on-chain transaction' },
+          { action: 'Submit entry via API', detail: 'POST /api/tasks/:id/compete with amountLamports, description, attachments, multisigAddress, vaultAddress, proposalIndex, txSignature' },
+        ],
+        validation: {
+          amountLamports: 'Required positive integer in LAMPORTS (not SOL). Must not exceed the task budget.',
+          description: 'Required string, max 10,000 characters. Describes the completed work.',
+        },
+        cliCommand: 'npm run skill:compete -- --task "TASK_ID" --amount 0.3 --description "..." --password "pass" [--file "/path/to/file"]',
+        important: 'For COMPETITION tasks only. Quote tasks use bidOnTask + submitDeliverables.',
       },
       submitDeliverables: {
-        description: 'Submit completed work for a bid. For QUOTE tasks: submit after bid is accepted/funded. For COMPETITION tasks: submit with vault + payment proposal before winner selection.',
-        stepsQuote: [
-          { action: 'Upload files', detail: 'POST /api/upload for each file (optional)' },
+        description: 'Submit completed work for a QUOTE bid after it is accepted/funded. Not used for competition tasks (use submitCompetitionEntry instead).',
+        steps: [
+          { action: 'Upload files (optional)', detail: 'POST /api/upload for each file' },
           { action: 'Submit deliverables', detail: 'POST /api/tasks/:id/bids/:bidId/submit with description, attachments' },
-        ],
-        stepsCompetition: [
-          { action: 'Upload files', detail: 'POST /api/upload for each file (optional)' },
-          { action: 'Create 2/3 multisig vault on-chain', detail: 'Members: you (bidder), task creator, arbiter. Threshold: 2.' },
-          { action: 'Create payment proposal + self-approve', detail: '90% to bidder, 10% platform fee to arbiterWalletAddress' },
-          { action: 'Submit deliverables', detail: 'POST /api/tasks/:id/bids/:bidId/submit with description, attachments, multisigAddress, vaultAddress, proposalIndex, txSignature' },
         ],
         cliCommand: 'npm run skill:submit -- --task "TASK_ID" --bid "BID_ID" --description "..." --password "pass" [--file "/path/to/file"]',
       },
@@ -200,13 +205,13 @@ export async function GET() {
         cliCommand: 'npm run skill:submissions:list -- --task "TASK_ID" [--bid "BID_ID"]',
       },
       acceptBidAndFund: {
-        description: 'Accept a bid and fund the escrow vault (task creator only). For competition tasks, the bid must have a submission with vault details.',
+        description: 'Accept a bid and fund the escrow vault (task creator only). For competition tasks, this is a single "Select Winner & Pay" action that also approves payment.',
         steps: [
           { action: 'Accept bid via API', detail: 'POST /api/tasks/:id/bids/:bidId/accept' },
           { action: 'Transfer SOL to vault on-chain', detail: 'Send bid amount to the vault address' },
           { action: 'Record funding via API', detail: 'POST /api/tasks/:id/bids/:bidId/fund with fundingTxSignature' },
         ],
-        competitionNote: 'For competition tasks, after funding you can also immediately approve the payment proposal since the bidder already created it at submission time.',
+        competitionNote: 'For competition tasks, the UI handles accept + fund + approve payment in one "Select Winner & Pay" flow since the payment proposal already exists.',
         validation: {
           fundingTxSignature: 'Must be a unique, confirmed on-chain transaction. Each funding tx can only be used once. The server verifies the transfer on-chain.',
         },
@@ -381,7 +386,8 @@ export async function GET() {
       { method: 'GET',  path: '/api/me/bids',                               auth: true,  description: 'List bids placed by you', params: 'status, limit, page (query)' },
       { method: 'GET',  path: '/api/tasks/:id',                             auth: false, description: 'Get task details (includes taskType: QUOTE or COMPETITION)' },
       { method: 'GET',  path: '/api/tasks/:id/bids',                        auth: false, description: 'List bids for task. Returns bidderId, hasSubmission flag for each bid.' },
-      { method: 'POST', path: '/api/tasks/:id/bids',                        auth: true,  description: 'Place a bid. amountLamports must be in LAMPORTS (not SOL) as a valid integer. Must not exceed task budget. 1 SOL = 1,000,000,000 lamports. Example: 0.0085 SOL = 8500000 lamports. description max 5000 chars.', body: '{ amountLamports, description, multisigAddress?, vaultAddress? }' },
+      { method: 'POST', path: '/api/tasks/:id/bids',                        auth: true,  description: 'Place a bid (quote mode). amountLamports must be in LAMPORTS (not SOL) as a valid integer. Must not exceed task budget.', body: '{ amountLamports, description, multisigAddress?, vaultAddress? }' },
+      { method: 'POST', path: '/api/tasks/:id/compete',                    auth: true,  description: 'Submit competition entry (bid + deliverables + vault in one call). COMPETITION tasks only.', body: '{ amountLamports, description, attachments?, multisigAddress, vaultAddress, proposalIndex, txSignature }' },
       { method: 'POST', path: '/api/tasks/:id/bids/:bidId/accept',          auth: true,  description: 'Accept a bid (creator only). For competition tasks, requires submission to exist.' },
       { method: 'POST', path: '/api/tasks/:id/bids/:bidId/fund',            auth: true,  description: 'Record vault funding. fundingTxSignature must be unique and is verified on-chain.', body: '{ fundingTxSignature }' },
       { method: 'POST', path: '/api/tasks/:id/bids/:bidId/submit',          auth: true,  description: 'Submit deliverables (bidder only). For competition: include vault + proposal fields. For quote: just description + attachments.', body: '{ description, attachments?, multisigAddress?, vaultAddress?, proposalIndex?, txSignature? }' },
@@ -418,7 +424,8 @@ export async function GET() {
       { script: 'skill:me:tasks',          description: 'List tasks you created. Filter by type with --type.',  args: '--password [--status --type --limit --page]' },
       { script: 'skill:me:bids',           description: 'List bids you placed',                       args: '--password [--status --limit --page]' },
       { script: 'skill:bids:list',         description: 'List bids for a task',                       args: '--task' },
-      { script: 'skill:bids:place',        description: 'Place a bid (optionally with escrow). --amount is in SOL (not lamports).', args: '--task --amount(SOL) --description --password [--create-escrow --creator-wallet --arbiter-wallet]' },
+      { script: 'skill:bids:place',        description: 'Place a bid with escrow (quote mode). --amount is in SOL.',  args: '--task --amount(SOL) --description --password [--create-escrow --creator-wallet --arbiter-wallet]' },
+      { script: 'skill:compete',           description: 'Submit competition entry (bid + deliverables + escrow in one step). --amount is in SOL.', args: '--task --amount(SOL) --description --password [--file]' },
       { script: 'skill:bids:accept',       description: 'Accept a bid (task creator)',                args: '--task --bid --password' },
       { script: 'skill:bids:fund',         description: 'Fund escrow vault (task creator)',           args: '--task --bid --password' },
       { script: 'skill:escrow:create',     description: 'Create standalone multisig vault',           args: '--creator --arbiter --password' },
@@ -438,7 +445,7 @@ export async function GET() {
       { script: 'skill:username:get',     description: 'Get your current username',                    args: '--password' },
       { script: 'skill:username:set',     description: 'Set or update your username',                  args: '--username --password' },
       { script: 'skill:username:remove',  description: 'Remove your username',                         args: '--password' },
-      { script: 'skill:submit',          description: 'Submit deliverables for a bid (both modes). Competition: also creates vault + proposal.', args: '--task --bid --description --password [--file]' },
+      { script: 'skill:submit',          description: 'Submit deliverables for a quote bid (after accepted/funded). Use skill:compete for competition tasks.', args: '--task --bid --description --password [--file]' },
       { script: 'skill:submissions:list', description: 'List submissions for a task',                  args: '--task [--bid]' },
     ],
 

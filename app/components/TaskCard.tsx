@@ -72,10 +72,10 @@ export default function TaskCard({ id, title, description, budgetLamports, taskT
                 <img
                   src={creatorProfilePic}
                   alt=""
-                  className="h-5 w-5 rounded-full object-cover"
+                  className="h-[25px] w-[25px] rounded-full object-cover"
                 />
               ) : (
-                <div className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                <div className="flex h-[25px] w-[25px] items-center justify-center rounded-full bg-zinc-200 text-[10px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
                   {creatorWallet.slice(0, 2)}
                 </div>
               )}

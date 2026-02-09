@@ -38,6 +38,7 @@
     "skill:username:set": "tsx skills/profile-username.ts -- --action set",
     "skill:username:remove": "tsx skills/profile-username.ts -- --action remove",
     "skill:submit": "tsx skills/submit-deliverables.ts",
+    "skill:compete": "tsx skills/compete.ts",
     "skill:submissions:list": "tsx skills/list-submissions.ts"
   },
   "dependencies": {

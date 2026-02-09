@@ -278,7 +278,7 @@ export default function Navbar() {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => { setShowDropdown(!showDropdown); setShowNotifications(false) }}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 bg-white transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-600"
+                className="flex h-[45px] w-[45px] items-center justify-center rounded-full border border-zinc-200 bg-white transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900 dark:hover:border-zinc-600"
               >
                 {profilePic ? (
                   <img src={profilePic} alt="" className="h-full w-full rounded-full object-cover" />

@@ -18,6 +18,7 @@ import Chat from '../../components/Chat'
 import MultisigActions from '../../components/MultisigActions'
 import SubmissionForm from '../../components/SubmissionForm'
 import SubmissionList from '../../components/SubmissionList'
+import CompetitionEntryForm from '../../components/CompetitionEntryForm'
 
 interface Task {
   id: string
@@ -150,13 +151,12 @@ export default function TaskDetailPage() {
   const myBid = bids.find((b) => b.bidderWallet === wallet)
   const mySubmission = myBid ? submissions.find((s) => s.bidId === myBid.id) : null
 
-  // Show submission form for bidders:
-  // Competition: bidder has a PENDING bid and hasn't submitted yet
-  // Quote: bidder is the winning bidder, bid is ACCEPTED or FUNDED, and hasn't submitted yet
-  const showSubmissionForm = isAuthenticated && !isCreator && myBid && !mySubmission && (
-    isCompetition
-      ? myBid.status === 'PENDING'
-      : (isWinningBidder && ['ACCEPTED', 'FUNDED'].includes(myBid.status))
+  // Competition entry form: shown when user hasn't entered yet
+  const showCompetitionEntry = isAuthenticated && !isCreator && !isBidder && isCompetition && task.status === 'OPEN'
+
+  // Quote submission form: shown after winning bid is accepted/funded
+  const showSubmissionForm = isAuthenticated && !isCreator && !isCompetition && myBid && !mySubmission && (
+    isWinningBidder && ['ACCEPTED', 'FUNDED'].includes(myBid.status)
   )
 
   const taskUrl = typeof window !== 'undefined' ? `${window.location.origin}/tasks/${id}` : `/tasks/${id}`
@@ -199,10 +199,10 @@ export default function TaskDetailPage() {
               <img
                 src={task.creatorProfilePic}
                 alt=""
-                className="h-6 w-6 rounded-full object-cover"
+                className="h-[30px] w-[30px] rounded-full object-cover"
               />
             ) : (
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+              <div className="flex h-[30px] w-[30px] items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
                 {task.creatorWallet.slice(0, 2)}
               </div>
             )}
@@ -252,7 +252,19 @@ export default function TaskDetailPage() {
         </div>
       )}
 
-      {/* Submission form for bidders */}
+      {/* Competition entry form (combined bid + submission) */}
+      {showCompetitionEntry && (
+        <div className="mb-6">
+          <CompetitionEntryForm
+            taskId={task.id}
+            creatorWallet={task.creatorWallet}
+            budgetLamports={task.budgetLamports}
+            onEntrySubmitted={refreshAll}
+          />
+        </div>
+      )}
+
+      {/* Quote mode submission form for winning bidder */}
       {showSubmissionForm && myBid && (
         <div className="mb-6">
           <SubmissionForm
@@ -275,14 +287,10 @@ export default function TaskDetailPage() {
           <SubmissionList
             submissions={submissions}
             isCreator={isCreator}
+            taskId={task.id}
             taskType={task.taskType}
             taskStatus={task.status}
-            onSelectWinner={isCreator ? (bidId) => {
-              // This triggers accept + fund flow for competition mode
-              // Handled in BidList's accept flow
-              const bid = bids.find(b => b.id === bidId)
-              if (bid) setSelectedBidderId(bid.bidderId)
-            } : undefined}
+            onWinnerSelected={refreshAll}
           />
         </div>
       )}
@@ -292,7 +300,7 @@ export default function TaskDetailPage() {
         {/* Left: Bids */}
         <div>
           <h2 className="mb-3 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
-            Bids ({bids.length})
+            {isCompetition ? 'Entries' : 'Bids'} ({bids.length})
           </h2>
           <div className="max-h-[500px] overflow-y-auto pr-2">
             <BidList
@@ -309,8 +317,8 @@ export default function TaskDetailPage() {
               } : undefined}
             />
           </div>
-          {/* Bid form */}
-          {isAuthenticated && !isCreator && task.status === 'OPEN' && !isBidder && (
+          {/* Bid form (quote mode only -- competition uses CompetitionEntryForm above) */}
+          {isAuthenticated && !isCreator && task.status === 'OPEN' && !isBidder && !isCompetition && (
             <div className="mt-4">
               <BidForm
                 taskId={task.id}

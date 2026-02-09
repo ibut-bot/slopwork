@@ -134,10 +134,8 @@ export default function BidList({ bids, taskId, isCreator, taskStatus, taskType 
   return (
     <div className="space-y-3">
       {bids.map((bid) => {
-        // For competition mode, only allow accepting bids that have submissions
-        const canAccept = isCreator && taskStatus === 'OPEN' && bid.status === 'PENDING' && (
-          isCompetition ? bid.hasSubmission : true
-        )
+        // For competition mode, winner selection happens in SubmissionList, not here
+        const canAccept = isCreator && taskStatus === 'OPEN' && bid.status === 'PENDING' && !isCompetition
 
         return (
           <div
@@ -167,9 +165,9 @@ export default function BidList({ bids, taskId, isCreator, taskStatus, taskType 
               </div>
               <Link href={`/u/${bid.bidderWallet}`} className="flex items-center gap-1.5 hover:opacity-80">
                 {bid.bidderProfilePic ? (
-                  <img src={bid.bidderProfilePic} alt="" className="h-5 w-5 rounded-full object-cover" />
+                  <img src={bid.bidderProfilePic} alt="" className="h-[25px] w-[25px] rounded-full object-cover" />
                 ) : (
-                  <div className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-200 text-[10px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                  <div className="flex h-[25px] w-[25px] items-center justify-center rounded-full bg-zinc-200 text-[10px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
                     {bid.bidderWallet.slice(0, 2)}
                   </div>
                 )}
@@ -201,9 +199,7 @@ export default function BidList({ bids, taskId, isCreator, taskStatus, taskType 
                     : `Accept & Fund (${formatSol(bid.amountLamports)})`}
               </button>
             )}
-            {isCompetition && isCreator && taskStatus === 'OPEN' && bid.status === 'PENDING' && !bid.hasSubmission && (
-              <p className="mt-1 text-xs text-zinc-400">Awaiting submission before selection</p>
-            )}
+            {/* Competition entries always have submissions since bid+submission are combined */}
           </div>
         )
       })}

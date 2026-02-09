@@ -287,9 +287,9 @@ export default function Chat({ taskId, isCreator, bidders = [], selectedBidderId
             <span>Conversation with</span>
             <Link href={`/u/${selectedBidderWallet}`} className="inline-flex items-center gap-1.5 hover:text-zinc-700 dark:hover:text-zinc-300">
               {selectedBidderProfilePic ? (
-                <img src={selectedBidderProfilePic} alt="" className="h-4 w-4 rounded-full object-cover" />
+                <img src={selectedBidderProfilePic} alt="" className="h-5 w-5 rounded-full object-cover" />
               ) : (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-zinc-200 text-[8px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-zinc-200 text-[8px] font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
                   {selectedBidderWallet.slice(0, 2)}
                 </span>
               )}
@@ -317,9 +317,9 @@ export default function Chat({ taskId, isCreator, bidders = [], selectedBidderId
               {!isMe && (
                 <Link href={`/u/${msg.senderWallet}`} className="mr-2 flex-shrink-0 hover:opacity-80">
                   {msg.senderProfilePic ? (
-                    <img src={msg.senderProfilePic} alt="" className="h-7 w-7 rounded-full object-cover" />
+                    <img src={msg.senderProfilePic} alt="" className="h-[35px] w-[35px] rounded-full object-cover" />
                   ) : (
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+                    <div className="flex h-[35px] w-[35px] items-center justify-center rounded-full bg-zinc-200 text-xs font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
                       {msg.senderWallet.slice(0, 2)}
                     </div>
                   )}
