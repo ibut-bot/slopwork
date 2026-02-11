@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 
@@ -182,6 +182,9 @@ export default function TaskDetailPage() {
     fetchConversations()
   }
 
+  // Must be called before any early returns (React hooks rule)
+  const countdown = useCountdown(task?.deadlineAt ?? null)
+
   if (loading) {
     return (
       <div className="mx-auto max-w-4xl">
@@ -204,7 +207,6 @@ export default function TaskDetailPage() {
   const isBidder = bids.some((b) => b.bidderWallet === wallet)
   const isWinningBidder = task.winningBid?.bidderWallet === wallet
   const isCompetition = task.taskType === 'COMPETITION'
-  const countdown = useCountdown(task.deadlineAt)
   const isExpired = countdown?.expired === true
 
   // Find current user's bid
